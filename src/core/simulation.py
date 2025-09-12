@@ -350,11 +350,19 @@ class MonteCarloSimulation:
         Returns:
             Dictionary containing quantum development trajectory
         """
-        # Placeholder implementation - will be replaced with actual model
+        # Use real quantum model if available
         if 'quantum_timeline' in self.models:
-            return self.models['quantum_timeline'].sample(rng, self.config.quantum)
+            timeline = self.models['quantum_timeline'].sample(rng)
+            return {
+                'crqc_year': timeline.crqc_year,
+                'qubit_trajectory': [cap.logical_qubits for cap in timeline.capabilities],
+                'breakthrough_years': timeline.breakthrough_years,
+                'capabilities': timeline.capabilities,
+                'projection_method': timeline.projection_method,
+                'confidence': timeline.confidence
+            }
         
-        # Simple placeholder
+        # Simple placeholder (only if model not provided)
         crqc_year = 2025 + rng.exponential(scale=8)  # Mean ~2033
         return {
             'crqc_year': crqc_year,

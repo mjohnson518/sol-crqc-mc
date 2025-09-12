@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.core.simulation import MonteCarloSimulation
 from src.config import SimulationParameters, get_test_config
 from src.core.random_engine import RandomEngine
+from src.models.quantum_timeline import QuantumDevelopmentModel
 
 
 def demonstrate_basic_simulation():
@@ -36,9 +37,14 @@ def demonstrate_basic_simulation():
     print(f"  Random seed: {config.random_seed}")
     print(f"  Time range: {config.start_year}-{config.end_year}")
     
-    # Create and run simulation
-    print("\nRunning simulation...")
-    sim = MonteCarloSimulation(config)
+    # Create models
+    models = {
+        'quantum_timeline': QuantumDevelopmentModel(config.quantum)
+    }
+    
+    # Create and run simulation with real quantum model
+    print("\nRunning simulation with quantum timeline model...")
+    sim = MonteCarloSimulation(config, models=models)
     
     start_time = time.time()
     results = sim.run()
@@ -223,6 +229,64 @@ def demonstrate_random_engine():
         print(f"  Worker {i}: {seed}")
 
 
+def demonstrate_quantum_integration():
+    """Demonstrate integration with quantum timeline model."""
+    print("\n" + "=" * 60)
+    print("QUANTUM MODEL INTEGRATION")
+    print("=" * 60)
+    
+    # Create configuration
+    config = SimulationParameters(
+        n_iterations=100,
+        n_cores=1,
+        random_seed=42,
+        save_raw_results=False
+    )
+    
+    # Create models
+    models = {
+        'quantum_timeline': QuantumDevelopmentModel(config.quantum)
+    }
+    
+    print("\nRunning simulation WITH quantum model...")
+    sim_with = MonteCarloSimulation(config, models=models)
+    results_with = sim_with.run()
+    
+    print("\nRunning simulation WITHOUT quantum model (placeholder)...")
+    sim_without = MonteCarloSimulation(config, models={})
+    results_without = sim_without.run()
+    
+    # Compare results
+    print("\nComparison:")
+    
+    if 'metrics' in results_with:
+        if results_with['metrics'].get('first_attack_year'):
+            with_mean = results_with['metrics']['first_attack_year']['mean']
+            with_std = results_with['metrics']['first_attack_year']['std']
+            print(f"  With Quantum Model:")
+            print(f"    Mean CRQC: {with_mean:.1f} ± {with_std:.1f}")
+    
+    if 'metrics' in results_without:
+        if results_without['metrics'].get('first_attack_year'):
+            without_mean = results_without['metrics']['first_attack_year']['mean']
+            without_std = results_without['metrics']['first_attack_year']['std']
+            print(f"  Without Quantum Model (placeholder):")
+            print(f"    Mean CRQC: {without_mean:.1f} ± {without_std:.1f}")
+    
+    # Show projection methods used (only available with real model)
+    if 'raw_results' in results_with and len(results_with['raw_results']) > 0:
+        methods_used = {}
+        for result in results_with['raw_results'][:20]:  # Sample first 20
+            if 'quantum_timeline' in result and 'projection_method' in result['quantum_timeline']:
+                method = result['quantum_timeline']['projection_method']
+                methods_used[method] = methods_used.get(method, 0) + 1
+        
+        if methods_used:
+            print(f"\n  Projection methods used (sample of 20):")
+            for method, count in methods_used.items():
+                print(f"    {method}: {count}")
+
+
 def demonstrate_progress_tracking():
     """Demonstrate progress tracking during simulation."""
     print("\n" + "=" * 60)
@@ -262,6 +326,7 @@ def main():
     demonstrate_parallel_vs_sequential()
     demonstrate_reproducibility()
     demonstrate_random_engine()
+    demonstrate_quantum_integration()
     # demonstrate_progress_tracking()  # Commented out as callback doesn't work well with tqdm
     
     print("\n" + "=" * 60)
