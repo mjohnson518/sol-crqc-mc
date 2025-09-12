@@ -1,0 +1,32 @@
+{
+  "configuration": {
+    "title": "Solana Quantum Impact Monte Carlo Simulation Report",
+    "author": "Supernova",
+    "include_raw_data": "False",
+    "include_charts": "True",
+    "include_recommendations": "True",
+    "decimal_places": "2",
+    "output_format": "markdown"
+  },
+  "analysis": {
+    "statistics": {},
+    "risk_metrics": {
+      "risk_score": "75",
+      "risk_level": {
+        "_value_": "Critical",
+        "_name_": "CRITICAL",
+        "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x1008f65f0>, '__module__': 'analysis.risk_assessment', '__doc__': 'Risk level categories.', '_member_names_': ['CRITICAL', 'HIGH', 'MODERATE', 'LOW', 'MINIMAL'], '_member_map_': {'CRITICAL': <RiskLevel.CRITICAL: 'Critical'>, 'HIGH': <RiskLevel.HIGH: 'High'>, 'MODERATE': <RiskLevel.MODERATE: 'Moderate'>, 'LOW': <RiskLevel.LOW: 'Low'>, 'MINIMAL': <RiskLevel.MINIMAL: 'Minimal'>}, '_member_type_': <class 'object'>, '_value2member_map_': {'Critical': <RiskLevel.CRITICAL: 'Critical'>, 'High': <RiskLevel.HIGH: 'High'>, 'Moderate': <RiskLevel.MODERATE: 'Moderate'>, 'Low': <RiskLevel.LOW: 'Low'>, 'Minimal': <RiskLevel.MINIMAL: 'Minimal'>}, 'CRITICAL': <RiskLevel.CRITICAL: 'Critical'>, 'HIGH': <RiskLevel.HIGH: 'High'>, 'MODERATE': <RiskLevel.MODERATE: 'Moderate'>, 'LOW': <RiskLevel.LOW: 'Low'>, 'MINIMAL': <RiskLevel.MINIMAL: 'Minimal'>, '__new__': <function Enum.__new__ at 0x1008f6560>}"
+      },
+      "probability": "0.8070449948560167",
+      "impact": "0.6002143622722401",
+      "time_horizon": "4.222222222222172",
+      "confidence": "0.85"
+    }
+  },
+  "summary": {
+    "total_iterations": 9,
+    "successful_iterations": 0,
+    "failed_iterations": 0,
+    "runtime_seconds": 0
+  }
+}

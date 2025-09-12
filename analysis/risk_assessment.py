@@ -15,11 +15,11 @@ from datetime import datetime
 
 class RiskLevel(Enum):
     """Risk level categories."""
-    CRITICAL = "Critical"
-    HIGH = "High"
-    MODERATE = "Moderate"
-    LOW = "Low"
-    MINIMAL = "Minimal"
+    CRITICAL = "Critical"  # 75-100: Immediate action required
+    HIGH = "High"          # 60-75: Urgent response needed
+    MODERATE = "Moderate"  # 40-60: Proactive measures advised
+    LOW = "Low"           # 20-40: Monitor and prepare
+    MINIMAL = "Minimal"   # 0-20: Maintain awareness
 
 
 class ThreatCategory(Enum):
@@ -195,8 +195,8 @@ class RiskAssessor:
         # Calculate risk score (0-100)
         risk_score = self._calculate_risk_score(probability, impact, time_horizon)
         
-        # Determine risk level
-        risk_level = self.risk_matrix.categorize_risk(probability, impact)
+        # Determine risk level based on score
+        risk_level = self._score_to_risk_level(risk_score)
         
         # Calculate confidence based on simulation quality
         metadata = simulation_results.get('metadata', {})
@@ -461,17 +461,84 @@ class RiskAssessor:
         impact: float,
         time_horizon: float
     ) -> float:
-        """Calculate risk score from components."""
-        # Base score from probability and impact
-        base_score = probability * impact * 100
+        """
+        Calculate risk score from components using enhanced formula.
         
-        # Adjust for time horizon (closer = higher risk)
-        time_factor = max(0, 1 - time_horizon / 20)  # 20 year horizon
+        This formula better reflects true risk severity by:
+        1. Using weighted sum instead of multiplication (avoids dilution)
+        2. Properly weighting catastrophic impacts
+        3. Accounting for urgency of near-term threats
         
-        # Weighted score
-        risk_score = base_score * (0.7 + 0.3 * time_factor)
+        Args:
+            probability: Attack probability (0-1)
+            impact: Normalized impact (0-1)
+            time_horizon: Years until threat materializes
+            
+        Returns:
+            Risk score (0-100)
+        """
+        # Weight factors for risk components
+        probability_weight = 0.35  # How likely
+        impact_weight = 0.40       # How bad (higher weight for catastrophic impacts)
+        urgency_weight = 0.25      # How soon
         
-        return min(100, max(0, risk_score))
+        # Calculate urgency factor (inverse of time horizon)
+        # Near-term threats (< 5 years) get maximum urgency
+        # Urgency decreases linearly up to 10 years
+        urgency = max(0, 1 - (max(0, time_horizon - 2) / 8))  # High urgency for < 2 years
+        
+        # Apply non-linear scaling for catastrophic impacts
+        # Impacts > 50% of value get exponentially higher weight
+        if impact > 0.5:
+            impact_scaled = 0.5 + (impact - 0.5) * 1.5  # Amplify catastrophic impacts
+        else:
+            impact_scaled = impact
+        
+        # Calculate base risk score using weighted sum
+        base_score = (
+            probability * probability_weight * 100 +
+            impact_scaled * impact_weight * 100 +
+            urgency * urgency_weight * 100
+        )
+        
+        # Apply risk amplification for critical combinations
+        # When both probability and impact are high, add synergy bonus
+        if probability > 0.7 and impact > 0.5:
+            synergy_bonus = (probability - 0.7) * (impact - 0.5) * 100
+            base_score += synergy_bonus
+        
+        # Ensure minimum risk score for any credible threat
+        if probability >= 0.5 and impact >= 0.3:
+            base_score = max(base_score, 45)  # Minimum moderate risk
+        
+        if probability >= 0.7 and impact >= 0.5:
+            base_score = max(base_score, 65)  # Minimum high risk
+        
+        if probability >= 0.8 and impact >= 0.6:
+            base_score = max(base_score, 75)  # Minimum critical risk
+        
+        return min(100, max(0, base_score))
+    
+    def _score_to_risk_level(self, risk_score: float) -> RiskLevel:
+        """
+        Convert risk score to risk level category.
+        
+        Args:
+            risk_score: Risk score (0-100)
+            
+        Returns:
+            Risk level category
+        """
+        if risk_score >= 75:
+            return RiskLevel.CRITICAL
+        elif risk_score >= 60:
+            return RiskLevel.HIGH
+        elif risk_score >= 40:
+            return RiskLevel.MODERATE
+        elif risk_score >= 20:
+            return RiskLevel.LOW
+        else:
+            return RiskLevel.MINIMAL
     
     def _calculate_probability_by_year(
         self,
