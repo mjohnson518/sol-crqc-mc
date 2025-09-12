@@ -426,14 +426,37 @@ class MonteCarloSimulation:
         Returns:
             List of attack opportunity windows
         """
-        # Placeholder implementation
-        if 'attack_model' in self.models:
-            return self.models['attack_model'].identify_windows(
-                quantum_timeline,
-                network_state
-            )
+        # Use real attack model if available
+        if 'attack_scenarios' in self.models and 'capabilities' in quantum_timeline:
+            windows = []
+            evolution = network_state.get('evolution')
+            
+            if evolution:
+                # Check each year for attack opportunities
+                for capability in quantum_timeline['capabilities']:
+                    year = capability.year
+                    if year > self.config.end_year:
+                        break
+                    
+                    snapshot = evolution.get_snapshot_at_year(year)
+                    attack_plan = self.models['attack_scenarios'].sample(
+                        np.random.RandomState(int(year)),  # Deterministic for reproducibility
+                        capability,
+                        snapshot
+                    )
+                    
+                    for window in attack_plan.windows:
+                        windows.append({
+                            'start_year': window.start_year,
+                            'end_year': window.end_year,
+                            'peak_year': window.peak_year,
+                            'opportunity_score': window.opportunity_score,
+                            'attack_plan': attack_plan
+                        })
+            
+            return windows
         
-        # Simple placeholder
+        # Simple placeholder (only if model not provided)
         if quantum_timeline['crqc_year'] < self.config.end_year:
             return [{
                 'start_year': quantum_timeline['crqc_year'],
@@ -459,16 +482,39 @@ class MonteCarloSimulation:
         Returns:
             Dictionary containing attack results
         """
-        # Placeholder implementation
-        if 'attack_model' in self.models:
-            return self.models['attack_model'].simulate(
-                rng,
-                attack_opportunities,
-                network_state,
-                self.config
-            )
+        # Use real attack scenarios if available
+        if attack_opportunities and 'attack_plan' in attack_opportunities[0]:
+            # Get the best attack opportunity
+            best_window = max(attack_opportunities, key=lambda w: w.get('opportunity_score', 0))
+            attack_plan = best_window['attack_plan']
+            
+            if attack_plan.scenarios:
+                # Select best scenario
+                best_scenario = max(attack_plan.scenarios, key=lambda s: s.impact_score)
+                
+                # Simulate attack execution
+                success = rng.random() < best_scenario.success_probability
+                
+                return {
+                    'attacks_attempted': len(attack_opportunities),
+                    'attacks_successful': 1 if success else 0,
+                    'first_success_year': best_scenario.year if success else None,
+                    'attack_type': best_scenario.attack_type.value,
+                    'attack_severity': best_scenario.severity.value,
+                    'validators_compromised': best_scenario.validators_compromised,
+                    'stake_compromised': best_scenario.stake_compromised,
+                    'accounts_at_risk': best_scenario.accounts_at_risk,
+                    'impact_score': best_scenario.impact_score
+                }
+            
+            return {
+                'attacks_attempted': 0,
+                'attacks_successful': 0,
+                'first_success_year': None,
+                'reason': 'No feasible attack scenarios'
+            }
         
-        # Simple placeholder
+        # Simple placeholder (only if model not provided)
         if attack_opportunities:
             success = rng.random() < 0.7  # 70% success rate
             return {

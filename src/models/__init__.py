@@ -16,6 +16,15 @@ from src.models.network_state import (
     MigrationStatus,
     ValidatorTier
 )
+from src.models.attack_scenarios import (
+    AttackScenariosModel,
+    AttackPlan,
+    AttackScenario,
+    AttackWindow,
+    AttackType,
+    AttackVector,
+    AttackSeverity
+)
 
 __all__ = [
     'QuantumDevelopmentModel',
@@ -27,5 +36,12 @@ __all__ = [
     'NetworkSnapshot',
     'ValidatorState',
     'MigrationStatus',
-    'ValidatorTier'
+    'ValidatorTier',
+    'AttackScenariosModel',
+    'AttackPlan',
+    'AttackScenario',
+    'AttackWindow',
+    'AttackType',
+    'AttackVector',
+    'AttackSeverity'
 ]
