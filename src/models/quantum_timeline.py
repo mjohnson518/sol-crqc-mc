@@ -451,6 +451,12 @@ class QuantumDevelopmentModel:
         Returns:
             QuantumThreat level
         """
+        # Handle None values
+        if logical_qubits is None:
+            logical_qubits = 0
+        if gate_fidelity is None:
+            gate_fidelity = 0.0
+            
         if logical_qubits < 100:
             return QuantumThreat.NONE
         elif logical_qubits < 1000:
