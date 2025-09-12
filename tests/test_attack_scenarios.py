@@ -237,7 +237,7 @@ class TestAttackScenariosModel:
         # High migration network - limits some attacks
         network_high_migration = NetworkSnapshot(
             year=2030,
-            n_validators=3000,
+            n_validators=1032,
             total_stake=400000000,
             validators=[],
             geographic_distribution={},
@@ -272,7 +272,7 @@ class TestAttackScenariosModel:
         # Low migration network
         network_low_migration = NetworkSnapshot(
             year=2035,
-            n_validators=3000,
+            n_validators=1032,
             total_stake=400000000,
             validators=[],
             geographic_distribution={},
@@ -286,7 +286,7 @@ class TestAttackScenariosModel:
         # High migration network
         network_high_migration = NetworkSnapshot(
             year=2035,
-            n_validators=3000,
+            n_validators=1032,
             total_stake=400000000,
             validators=[],
             geographic_distribution={},
@@ -379,7 +379,7 @@ class TestAttackScenariosModel:
         
         network = NetworkSnapshot(
             year=2025,
-            n_validators=3000,
+            n_validators=1032,
             total_stake=400000000,
             validators=[],
             geographic_distribution={},

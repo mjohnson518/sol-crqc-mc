@@ -223,7 +223,7 @@ def demonstrate_resilience_factors():
             'name': 'Medium Resilience',
             'migration_progress': 0.5,
             'superminority_count': 35,
-            'total_validators': 3500,
+            'total_validators': 1200,
             'year': 2033,
             'crqc_year': 2035
         },

@@ -53,7 +53,7 @@ class TestSimulationParameters:
         
         # Test network parameters
         assert isinstance(config.network, NetworkParameters)
-        assert config.network.n_validators == 3248
+        assert config.network.n_validators == 1032
         assert config.network.total_stake_sol == 400_000_000
         
         # Test economic parameters
@@ -163,7 +163,7 @@ class TestNetworkParameters:
         """Test default network parameter values."""
         network = NetworkParameters()
         
-        assert network.n_validators == 3248
+        assert network.n_validators == 1032
         assert network.stake_gini_coefficient == 0.84
         assert network.validator_growth_rate == 1.15
     

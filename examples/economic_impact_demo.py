@@ -55,7 +55,7 @@ def demonstrate_single_impact():
     # Create network state
     network = NetworkSnapshot(
         year=2035,
-        n_validators=3000,
+        n_validators=1032,
         total_stake=400_000_000,
         validators=[],
         geographic_distribution={'north_america': 0.4, 'europe': 0.3, 'asia': 0.3},
@@ -113,7 +113,7 @@ def demonstrate_severity_comparison():
     # Fixed network state
     network = NetworkSnapshot(
         year=2035,
-        n_validators=3000,
+        n_validators=1032,
         total_stake=400_000_000,
         validators=[],
         geographic_distribution={'north_america': 0.4, 'europe': 0.3, 'asia': 0.3},
@@ -188,7 +188,7 @@ def demonstrate_migration_impact():
     for migration in migration_levels:
         network = NetworkSnapshot(
             year=2035,
-            n_validators=3000,
+            n_validators=1032,
             total_stake=400_000_000,
             validators=[],
             geographic_distribution={'north_america': 1.0},
@@ -235,7 +235,7 @@ def demonstrate_recovery_trajectory():
     
     network = NetworkSnapshot(
         year=2035,
-        n_validators=3000,
+        n_validators=1032,
         total_stake=400_000_000,
         validators=[],
         geographic_distribution={'north_america': 1.0},
@@ -299,7 +299,7 @@ def demonstrate_cumulative_loss():
     
     network = NetworkSnapshot(
         year=2035,
-        n_validators=3000,
+        n_validators=1032,
         total_stake=400_000_000,
         validators=[],
         geographic_distribution={'north_america': 1.0},
@@ -347,7 +347,7 @@ def demonstrate_attack_type_comparison():
     
     network = NetworkSnapshot(
         year=2035,
-        n_validators=3000,
+        n_validators=1032,
         total_stake=400_000_000,
         validators=[],
         geographic_distribution={'north_america': 1.0},

@@ -602,7 +602,7 @@ def test_economic_model():
     # Create test network
     network = NetworkSnapshot(
         year=2035,
-        n_validators=3000,
+        n_validators=1032,
         total_stake=400000000,
         validators=[],
         geographic_distribution={'north_america': 0.4, 'europe': 0.3, 'asia': 0.3},

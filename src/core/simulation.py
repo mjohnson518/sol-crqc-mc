@@ -589,7 +589,7 @@ class MonteCarloSimulation:
                 from src.models.network_state import NetworkSnapshot, MigrationStatus
                 network_snapshot = NetworkSnapshot(
                     year=attack_scenario.year,
-                    n_validators=network_state.get('validators', 3000),
+                    n_validators=network_state.get('validators', 1032),
                     total_stake=network_state.get('total_stake', 400000000),
                     validators=[],
                     geographic_distribution={},

@@ -202,7 +202,7 @@ class TestNetworkEvolution:
         snapshots = [
             NetworkSnapshot(
                 year=2025 + i,
-                n_validators=3000 + i * 100,
+                n_validators=1032 + i * 100,
                 total_stake=400000000 + i * 10000000,
                 validators=[],
                 geographic_distribution={},
@@ -219,20 +219,20 @@ class TestNetworkEvolution:
             snapshots=snapshots,
             migration_start_year=2033,
             migration_completion_year=2038,
-            peak_validators=3500,
+            peak_validators=1500,
             minimum_gini=0.80
         )
         
         assert len(evolution.snapshots) == 5
         assert evolution.migration_start_year == 2033
-        assert evolution.peak_validators == 3500
+        assert evolution.peak_validators == 1500
     
     def test_get_snapshot_at_year(self):
         """Test getting snapshot at specific year."""
         snapshots = [
             NetworkSnapshot(
                 year=year,
-                n_validators=3000,
+                n_validators=1032,
                 total_stake=400000000,
                 validators=[],
                 geographic_distribution={},
@@ -249,7 +249,7 @@ class TestNetworkEvolution:
             snapshots=snapshots,
             migration_start_year=2033,
             migration_completion_year=None,
-            peak_validators=3000,
+            peak_validators=1032,
             minimum_gini=0.84
         )
         

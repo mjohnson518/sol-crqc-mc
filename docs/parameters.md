@@ -92,7 +92,7 @@ This document provides detailed explanations for all parameters used in the Sola
 #### `validators = 1032`
 - **Description**: Current number of Solana validators
 - **Rationale**: Actual Solana network statistics
-- **Reference**: [Solana Beach](https://solanabeach.io/validators) (January 2025)
+- **Reference**: [Solana Beach](https://solanabeach.io/validators) (September 2025)
 - **Note**: Superminority consists of 22 validators
 
 #### `total_stake_sol = 400,000,000`
