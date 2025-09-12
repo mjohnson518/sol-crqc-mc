@@ -25,6 +25,15 @@ from src.models.attack_scenarios import (
     AttackVector,
     AttackSeverity
 )
+from src.models.economic_impact import (
+    EconomicImpactModel,
+    EconomicLoss,
+    EconomicRecovery,
+    ImpactComponent,
+    MarketReaction,
+    ImpactType,
+    RecoverySpeed
+)
 
 __all__ = [
     'QuantumDevelopmentModel',
@@ -43,5 +52,12 @@ __all__ = [
     'AttackWindow',
     'AttackType',
     'AttackVector',
-    'AttackSeverity'
+    'AttackSeverity',
+    'EconomicImpactModel',
+    'EconomicLoss',
+    'EconomicRecovery',
+    'ImpactComponent',
+    'MarketReaction',
+    'ImpactType',
+    'RecoverySpeed'
 ]

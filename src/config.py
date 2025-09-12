@@ -56,7 +56,7 @@ class NetworkParameters:
     """Parameters describing the Solana network state and characteristics."""
     
     # Validator network
-    n_validators: int = 3248  # Current number of validators
+    n_validators: int = 1032  # Current number of validators (Solana Beach Jan 2025)
     total_stake_sol: float = 400_000_000  # Total staked SOL
     stake_gini_coefficient: float = 0.84  # Stake concentration metric
     
@@ -75,8 +75,8 @@ class NetworkParameters:
     })
     
     # Network growth parameters
-    validator_growth_rate: float = 1.15  # Annual growth rate
-    stake_growth_rate: float = 1.10  # Annual stake growth
+    validator_growth_rate: float = 1.05  # 5% annual growth in validator count
+    stake_growth_rate: float = 1.10  # 10% annual growth in total stake
     
     # Key rotation and migration
     key_rotation_frequency_days: int = 365  # How often keys are rotated

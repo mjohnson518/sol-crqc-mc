@@ -543,18 +543,84 @@ class MonteCarloSimulation:
         Returns:
             Dictionary containing economic impact metrics
         """
-        # Placeholder implementation
-        if 'economic_model' in self.models:
-            return self.models['economic_model'].calculate_impact(
-                attack_results,
-                network_state,
-                self.config.economic
+        # Use real economic model if available
+        if 'economic_impact' in self.models and 'attack_type' in attack_results:
+            # Create an attack scenario from results
+            from src.models.attack_scenarios import AttackScenario, AttackType, AttackVector, AttackSeverity
+            
+            # Map attack type string to enum
+            attack_type_map = {
+                'key_compromise': AttackType.KEY_COMPROMISE,
+                'double_spend': AttackType.DOUBLE_SPEND,
+                'consensus_halt': AttackType.CONSENSUS_HALT,
+                'consensus_control': AttackType.CONSENSUS_CONTROL,
+                'targeted_theft': AttackType.TARGETED_THEFT,
+                'systemic_failure': AttackType.SYSTEMIC_FAILURE
+            }
+            
+            attack_severity_map = {
+                'low': AttackSeverity.LOW,
+                'medium': AttackSeverity.MEDIUM,
+                'high': AttackSeverity.HIGH,
+                'critical': AttackSeverity.CRITICAL
+            }
+            
+            # Create attack scenario from results
+            attack_scenario = AttackScenario(
+                attack_type=attack_type_map.get(attack_results.get('attack_type'), AttackType.KEY_COMPROMISE),
+                vector=AttackVector.VALIDATOR_KEYS,
+                year=attack_results.get('first_success_year', 2035),
+                success_probability=0.7,
+                severity=attack_severity_map.get(attack_results.get('attack_severity'), AttackSeverity.MEDIUM),
+                validators_compromised=attack_results.get('validators_compromised', 1),
+                stake_compromised=attack_results.get('stake_compromised', 0.01),
+                accounts_at_risk=attack_results.get('accounts_at_risk', 100000),
+                time_to_execute=24.0,
+                detection_probability=0.5,
+                mitigation_possible=True
             )
+            
+            # Get network snapshot
+            evolution = network_state.get('evolution')
+            if evolution:
+                network_snapshot = evolution.get_snapshot_at_year(attack_scenario.year)
+            else:
+                # Create minimal snapshot
+                from src.models.network_state import NetworkSnapshot, MigrationStatus
+                network_snapshot = NetworkSnapshot(
+                    year=attack_scenario.year,
+                    n_validators=network_state.get('validators', 3000),
+                    total_stake=network_state.get('total_stake', 400000000),
+                    validators=[],
+                    geographic_distribution={},
+                    migration_status=MigrationStatus.IN_PROGRESS,
+                    migration_progress=network_state.get('migration_progress', 0.3),
+                    superminority_count=30,
+                    gini_coefficient=0.8,
+                    network_resilience=network_state.get('network_resilience', 0.5)
+                )
+            
+            # Calculate economic impact
+            rng = np.random.RandomState(int(attack_scenario.year))
+            economic_loss = self.models['economic_impact'].calculate_impact(
+                rng,
+                attack_scenario,
+                network_snapshot
+            )
+            
+            return {
+                'direct_loss_usd': economic_loss.immediate_loss_usd,
+                'total_loss_usd': economic_loss.total_loss_usd,
+                'recovery_time_months': economic_loss.recovery_timeline_days / 30,
+                'economic_loss': economic_loss,
+                'market_reaction': economic_loss.market_reaction,
+                'loss_components': economic_loss.components
+            }
         
-        # Simple placeholder
-        if attack_results['attacks_successful'] > 0:
+        # Simple placeholder (only if model not provided)
+        if attack_results.get('attacks_successful', 0) > 0:
             direct_loss = self.config.economic.total_value_locked_usd * 0.3
-            total_loss = direct_loss * self.config.economic.attack_market_impact_multiplier
+            total_loss = direct_loss * 1.5  # Add market impact
         else:
             direct_loss = 0
             total_loss = 0

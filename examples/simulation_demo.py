@@ -16,6 +16,8 @@ from src.config import SimulationParameters, get_test_config
 from src.core.random_engine import RandomEngine
 from src.models.quantum_timeline import QuantumDevelopmentModel
 from src.models.network_state import NetworkStateModel
+from src.models.attack_scenarios import AttackScenariosModel
+from src.models.economic_impact import EconomicImpactModel
 
 
 def demonstrate_basic_simulation():
@@ -41,11 +43,13 @@ def demonstrate_basic_simulation():
     # Create models
     models = {
         'quantum_timeline': QuantumDevelopmentModel(config.quantum),
-        'network_state': NetworkStateModel(config.network)
+        'network_state': NetworkStateModel(config.network),
+        'attack_scenarios': AttackScenariosModel(config.quantum),
+        'economic_impact': EconomicImpactModel(config.economic)
     }
     
-    # Create and run simulation with real models
-    print("\nRunning simulation with quantum and network models...")
+    # Create and run simulation with all models
+    print("\nRunning simulation with all models (quantum, network, attack, economic)...")
     sim = MonteCarloSimulation(config, models=models)
     
     start_time = time.time()
@@ -248,14 +252,16 @@ def demonstrate_quantum_integration():
     # Create models
     models = {
         'quantum_timeline': QuantumDevelopmentModel(config.quantum),
-        'network_state': NetworkStateModel(config.network)
+        'network_state': NetworkStateModel(config.network),
+        'attack_scenarios': AttackScenariosModel(config.quantum),
+        'economic_impact': EconomicImpactModel(config.economic)
     }
     
-    print("\nRunning simulation WITH quantum and network models...")
+    print("\nRunning simulation WITH all models...")
     sim_with = MonteCarloSimulation(config, models=models)
     results_with = sim_with.run()
     
-    print("\nRunning simulation WITHOUT quantum model (placeholder)...")
+    print("\nRunning simulation WITHOUT models (placeholders only)...")
     sim_without = MonteCarloSimulation(config, models={})
     results_without = sim_without.run()
     
