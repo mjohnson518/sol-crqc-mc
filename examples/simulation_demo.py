@@ -15,6 +15,7 @@ from src.core.simulation import MonteCarloSimulation
 from src.config import SimulationParameters, get_test_config
 from src.core.random_engine import RandomEngine
 from src.models.quantum_timeline import QuantumDevelopmentModel
+from src.models.network_state import NetworkStateModel
 
 
 def demonstrate_basic_simulation():
@@ -39,11 +40,12 @@ def demonstrate_basic_simulation():
     
     # Create models
     models = {
-        'quantum_timeline': QuantumDevelopmentModel(config.quantum)
+        'quantum_timeline': QuantumDevelopmentModel(config.quantum),
+        'network_state': NetworkStateModel(config.network)
     }
     
-    # Create and run simulation with real quantum model
-    print("\nRunning simulation with quantum timeline model...")
+    # Create and run simulation with real models
+    print("\nRunning simulation with quantum and network models...")
     sim = MonteCarloSimulation(config, models=models)
     
     start_time = time.time()
@@ -245,10 +247,11 @@ def demonstrate_quantum_integration():
     
     # Create models
     models = {
-        'quantum_timeline': QuantumDevelopmentModel(config.quantum)
+        'quantum_timeline': QuantumDevelopmentModel(config.quantum),
+        'network_state': NetworkStateModel(config.network)
     }
     
-    print("\nRunning simulation WITH quantum model...")
+    print("\nRunning simulation WITH quantum and network models...")
     sim_with = MonteCarloSimulation(config, models=models)
     results_with = sim_with.run()
     

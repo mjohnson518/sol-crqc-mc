@@ -385,15 +385,26 @@ class MonteCarloSimulation:
         Returns:
             Dictionary containing network state over time
         """
-        # Placeholder implementation - will be replaced with actual model
+        # Use real network model if available
         if 'network_state' in self.models:
-            return self.models['network_state'].sample(
-                rng,
-                self.config.network,
-                quantum_timeline
-            )
+            evolution = self.models['network_state'].sample(rng, quantum_timeline)
+            
+            # Get snapshot at CRQC year for summary
+            crqc_year = quantum_timeline.get('crqc_year', 2035)
+            snapshot = evolution.get_snapshot_at_year(crqc_year)
+            
+            return {
+                'evolution': evolution,
+                'snapshots': evolution.snapshots,
+                'validators': snapshot.n_validators,
+                'total_stake': snapshot.total_stake,
+                'migration_progress': snapshot.migration_progress,
+                'vulnerable_stake_percentage': snapshot.vulnerable_stake_percentage,
+                'migration_timeline': evolution.get_migration_timeline(),
+                'network_resilience': snapshot.network_resilience
+            }
         
-        # Simple placeholder
+        # Simple placeholder (only if model not provided)
         return {
             'validators': self.config.network.n_validators,
             'total_stake': self.config.network.total_stake_sol,
