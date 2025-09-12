@@ -1,6 +1,6 @@
 # 🔒 Solana Quantum Impact Monte Carlo Simulation Report
 
-**Generated:** 2025-09-12 22:10:31
+**Generated:** 2025-09-12 22:26:46
 **Simulation Type:** Comprehensive Quantum Threat Assessment
 **Network:** Solana Blockchain
 **Author:** Supernova
@@ -11,7 +11,7 @@
 
 ### Simulation Overview
 
-- **Total Iterations:** 9 Monte Carlo simulations
+- **Total Iterations:** 89 Monte Carlo simulations
 - **Analysis Period:** 25 years
 - **Time Horizon:** 2025-2050
 - **Confidence Level:** 95%
@@ -22,25 +22,25 @@
 **⚠️ WARNING: CRITICAL QUANTUM RISK DETECTED**
 
 - **Overall Risk Score:** 75.0/100
-- **Attack Probability:** 80.7%
-- **Time to Threat:** 4.2 years
+- **Attack Probability:** 81.9%
+- **Time to Threat:** 4.0 years
 - **Impact Severity:** $78.4B potential loss
 - **Confidence Level:** 85.0%
 
 ### 💰 Economic Impact Summary
 
-- **Expected Loss (Mean):** $27.49 Billion
-- **Median Loss:** $39.56 Billion
-- **Best-Case Scenario:** $4.71 Billion
-- **Worst-Case Scenario:** $43.37 Billion
+- **Expected Loss (Mean):** $29.04 Billion
+- **Median Loss:** $29.18 Billion
+- **Best-Case Scenario:** $4.04 Billion
+- **Worst-Case Scenario:** $43.40 Billion
 - **Value at Risk (95%):** $78.40 Billion
-- **Conditional VaR (95%):** $43.37 Billion
+- **Conditional VaR (95%):** $43.36 Billion
 
 ### 📅 Quantum Threat Timeline
 
 - **Expected CRQC Emergence:** 2029
-- **Earliest Possible:** 2026
-- **Latest Projected:** 2035
+- **Earliest Possible:** 2025
+- **Latest Projected:** 2040
 - **90% Confidence Range:** 2027 - 2035
 - **Years Until Threat:** 4 years (average)
 
@@ -56,7 +56,7 @@
 ### 1. Quantum Computing Threat Timeline
 
 - **Cryptographically Relevant Quantum Computers (CRQC) are projected to emerge by 2029**
-- Standard deviation of 2.5 years indicates significant uncertainty
+- Standard deviation of 2.6 years indicates significant uncertainty
 - Industry projections show accelerating progress in quantum hardware:
   - Qubit counts doubling every 12-18 months
   - Gate fidelity improving 0.5% annually
@@ -66,8 +66,8 @@
 
 ### 2. Economic Impact Assessment
 
-- **Average economic loss per successful attack: $27.49B**
-- Standard deviation of $16.74B indicates high variability
+- **Average economic loss per successful attack: $29.04B**
+- Standard deviation of $11.48B indicates high variability
 - Loss components breakdown:
   - **Direct theft** from compromised accounts (20-40% of impact)
   - **Market panic** and SOL price decline (30-50% of impact)
@@ -125,10 +125,10 @@
 |------------|------------------|----------------|
 | 5th | $0.00B | Best case scenario |
 | 25th | $0.00B | Optimistic outcome |
-| 50th (Median) | $39.56B | Most likely outcome |
+| 50th (Median) | $29.18B | Most likely outcome |
 | 75th | $0.00B | Pessimistic outcome |
 | 95th | $0.00B | Near worst-case |
-| Maximum | $43.37B | Worst-case scenario |
+| Maximum | $43.40B | Worst-case scenario |
 
 ### Impact Components Breakdown
 
@@ -284,9 +284,9 @@ Phase 4 (Aftermath): Days to months
 **Current Risk Level: Critical**
 
 - **Composite Risk Score:** 75.0/100
-- **Attack Probability:** 80.7%
+- **Attack Probability:** 81.9%
 - **Expected Impact:** $78.4B potential loss
-- **Time Horizon:** 4.2 years to critical threat
+- **Time Horizon:** 4.0 years to critical threat
 - **Confidence Level:** 85.0%
 
 ### Risk Matrix
@@ -403,7 +403,7 @@ Low         🟢 Minimal  🟢 Low       🟢 Low        🟡 Medium
 
 ```json
 {
-  "iterations": 9,
+  "iterations": 89,
   "random_seed": 42,
   "start_year": 2025,
   "end_year": 2050,

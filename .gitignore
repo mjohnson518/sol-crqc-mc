@@ -57,6 +57,9 @@ data/output/figures/*.png
 data/output/figures/*.pdf
 data/output/figures/*.svg
 
+# Large simulation data files (don't track multi-GB files)
+simulation_results/*/data/raw_results.json
+
 # Log files
 *.log
 logs/
