@@ -449,7 +449,7 @@ class PDFReportGenerator:
         # Title
         toc_title = Paragraph("Table of Contents", self.styles['CustomHeading1'])
         self.story.append(toc_title)
-        self.story.append(Spacer(1, 0.2*inch))
+        self.story.append(Spacer(1, 0.15*inch))
         
         # TOC entries
         toc_data = []
@@ -460,13 +460,13 @@ class PDFReportGenerator:
                 # Clean the title (remove markdown symbols)
                 clean_title = self._clean_markdown_text(section['title'])
                 
-                # Create formatted title with proper indentation
+                # Create formatted title with arrows instead of bullets
                 if section['level'] == 1:
-                    # Main sections - bold
-                    title_para = Paragraph(f"<b>{clean_title}</b>", self.styles['BodyText'])
+                    # Main sections - bold with arrow
+                    title_para = Paragraph(f"<font color='{QUANTUM_COLORS['primary'].hexval()}'>\u25b8</font> <b>{clean_title}</b>", self.styles['BodyText'])
                 else:
-                    # Subsections - indented
-                    title_para = Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;{clean_title}", self.styles['BodyText'])
+                    # Subsections - indented with smaller arrow
+                    title_para = Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<font color='{QUANTUM_COLORS['secondary'].hexval()}'>\u2192</font> {clean_title}", self.styles['BodyText'])
                 
                 page_para = Paragraph(str(page_num), self.styles['BodyText'])
                 toc_data.append([title_para, page_para])
@@ -479,8 +479,8 @@ class PDFReportGenerator:
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('LINEBELOW', (0, 0), (-1, -1), 0.5, QUANTUM_COLORS['light']),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8)
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6)
         ]))
         
         self.story.append(toc_table)
@@ -548,11 +548,136 @@ class PDFReportGenerator:
                 self.story.append(risk_table)
                 self.story.append(Spacer(1, 0.2*inch))
         
-        # Executive summary text
-        summary_para = Paragraph(content_text, self.styles['ExecutiveSummary'])
-        self.story.append(summary_para)
+        # Process executive summary content with smart formatting
+        self._process_section_content(content_text, special_formatting=True)
         
         self.story.append(PageBreak())
+    
+    def _process_section_content(self, content_text: str, special_formatting: bool = False):
+        """Process section content with smart formatting.
+        
+        Args:
+            content_text: Raw content text
+            special_formatting: Whether to apply special formatting rules
+        """
+        # Handle special content patterns
+        if 'Risk Matrix' in content_text or 'Risk Status' in content_text:
+            self._process_risk_matrix(content_text)
+        elif 'Key Success Metrics' in content_text:
+            self._process_key_metrics(content_text)
+        elif 'Simulation Parameters' in content_text:
+            self._process_simulation_params(content_text)
+        elif '|' in content_text:
+            self._process_markdown_tables(content_text)
+        elif '```' in content_text:
+            self._process_code_blocks(content_text)
+        elif re.search(r'^\s*[-*+\d+\.]\s', content_text, re.MULTILINE):
+            self._process_lists(content_text)
+        else:
+            # Regular paragraphs with controlled spacing
+            paragraphs = content_text.split('\n\n')
+            for i, para_text in enumerate(paragraphs):
+                if para_text.strip():
+                    clean_text = self._clean_markdown_text(para_text.strip())
+                    if special_formatting and i == 0:
+                        # First paragraph in executive summary
+                        para = Paragraph(clean_text, self.styles['ExecutiveSummary'])
+                    else:
+                        para = Paragraph(clean_text, self.styles['CustomBodyText'])
+                    self.story.append(para)
+                    # Reduced spacing between paragraphs
+                    if i < len(paragraphs) - 1:
+                        self.story.append(Spacer(1, 0.06*inch))
+    
+    def _process_risk_matrix(self, content: str):
+        """Process risk matrix content into a formatted table."""
+        lines = content.split('\n')
+        matrix_data = []
+        
+        for line in lines:
+            if 'Risk Status' in line or 'Risk Score' in line or 'Attack Probability' in line:
+                # Extract key-value pairs
+                parts = line.split(':')
+                if len(parts) == 2:
+                    key = self._clean_markdown_text(parts[0].strip())
+                    value = self._clean_markdown_text(parts[1].strip())
+                    matrix_data.append([key, value])
+        
+        if matrix_data:
+            # Create risk matrix table
+            table = Table(matrix_data, colWidths=[3*inch, 3*inch])
+            table.setStyle(TableStyle([
+                ('FONT', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 11),
+                ('TEXTCOLOR', (0, 0), (0, -1), QUANTUM_COLORS['primary']),
+                ('TEXTCOLOR', (1, 0), (1, -1), QUANTUM_COLORS['dark']),
+                ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+                ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                ('GRID', (0, 0), (-1, -1), 1, QUANTUM_COLORS['light']),
+                ('BACKGROUND', (0, 0), (-1, -1), HexColor('#F9FAFB')),
+                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10)
+            ]))
+            self.story.append(table)
+            self.story.append(Spacer(1, 0.1*inch))
+        else:
+            # Fallback to paragraph
+            para = Paragraph(self._clean_markdown_text(content), self.styles['CustomBodyText'])
+            self.story.append(para)
+    
+    def _process_key_metrics(self, content: str):
+        """Process key metrics into a numbered list."""
+        lines = content.split('\n')
+        metrics = []
+        counter = 1
+        
+        for line in lines:
+            if line.strip() and not 'Key Success Metrics' in line:
+                clean_text = self._clean_markdown_text(line.strip())
+                if clean_text:
+                    para_text = f"<b>{counter}.</b> {clean_text}"
+                    metrics.append(Paragraph(para_text, self.styles['CustomBodyText']))
+                    counter += 1
+        
+        for metric in metrics:
+            self.story.append(metric)
+            self.story.append(Spacer(1, 0.03*inch))
+        
+        if metrics:
+            self.story.append(Spacer(1, 0.05*inch))
+    
+    def _process_simulation_params(self, content: str):
+        """Process simulation parameters into a formatted structure."""
+        lines = content.split('\n')
+        param_data = []
+        
+        for line in lines:
+            if ':' in line and not 'Simulation Parameters' in line:
+                parts = line.split(':', 1)
+                if len(parts) == 2:
+                    key = self._clean_markdown_text(parts[0].strip())
+                    value = self._clean_markdown_text(parts[1].strip())
+                    param_data.append([key, value])
+        
+        if param_data:
+            # Create parameters table
+            table = Table(param_data, colWidths=[2.5*inch, 3.5*inch])
+            table.setStyle(TableStyle([
+                ('FONT', (0, 0), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('TEXTCOLOR', (0, 0), (0, -1), QUANTUM_COLORS['secondary']),
+                ('TEXTCOLOR', (1, 0), (1, -1), QUANTUM_COLORS['dark']),
+                ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                ('LINEBELOW', (0, 0), (-1, -1), 0.5, QUANTUM_COLORS['light']),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4)
+            ]))
+            self.story.append(table)
+            self.story.append(Spacer(1, 0.1*inch))
+        else:
+            # Fallback to regular processing
+            self._process_lists(content)
     
     def _add_section(self, section: Dict[str, Any], charts_dir: Optional[Path]):
         """Add a content section to the PDF.
@@ -572,32 +697,9 @@ class PDFReportGenerator:
         title = Paragraph(section['title'], self.styles[style])
         self.story.append(title)
         
-        # Process content
+        # Process content with smart formatting
         content_text = '\n'.join(section['content'])
-        
-        # Clean markdown formatting from content
-        content_text = self._clean_markdown_text(content_text)
-        
-        # Check for tables in markdown
-        if '|' in content_text:
-            self._process_markdown_tables(content_text)
-        
-        # Check for code blocks
-        elif '```' in content_text:
-            self._process_code_blocks(content_text)
-        
-        # Check for lists
-        elif re.search(r'^\s*[-*+]\s', content_text, re.MULTILINE):
-            self._process_lists(content_text)
-        
-        # Regular paragraphs
-        else:
-            paragraphs = content_text.split('\n\n')
-            for para_text in paragraphs:
-                if para_text.strip():
-                    para = Paragraph(para_text.strip(), self.styles['CustomBodyText'])
-                    self.story.append(para)
-                    self.story.append(Spacer(1, 0.1*inch))
+        self._process_section_content(content_text)
         
         # Add related charts if available
         if charts_dir and section['title']:
@@ -651,9 +753,9 @@ class PDFReportGenerator:
             para_row = []
             for cell in row:
                 clean_text = self._clean_markdown_text(cell)
-                # Use different style for header row
+                # Use different style for header row with white text
                 if row_idx == 0:
-                    para = Paragraph(f"<b>{clean_text}</b>", self.styles['BodyText'])
+                    para = Paragraph(f"<font color='white'><b>{clean_text}</b></font>", self.styles['BodyText'])
                 else:
                     para = Paragraph(clean_text, self.styles['BodyText'])
                 para_row.append(para)
@@ -745,26 +847,43 @@ class PDFReportGenerator:
         """
         lines = content.split('\n')
         list_items = []
+        list_counter = 0
         
         for line in lines:
-            if re.match(r'^\s*[-*+]\s', line):
-                # List item
-                item_text = re.sub(r'^\s*[-*+]\s', '', line)
+            # Check for numbered lists (e.g., "1. ", "2. ")
+            numbered_match = re.match(r'^\s*(\d+)\.\s+(.+)', line)
+            # Check for bullet lists (-, *, +)
+            bullet_match = re.match(r'^\s*[-*+]\s+(.+)', line)
+            
+            if numbered_match:
+                # Numbered list item
+                number = numbered_match.group(1)
+                item_text = numbered_match.group(2)
                 clean_text = self._clean_markdown_text(item_text)
-                list_items.append(ListItem(
-                    Paragraph(clean_text, self.styles['CustomBodyText']),
-                    leftIndent=20
-                ))
+                para_text = f"<b>{number}.</b> {clean_text}"
+                list_items.append(
+                    Paragraph(para_text, self.styles['CustomBodyText'])
+                )
+                list_counter += 1
+            elif bullet_match:
+                # Bullet list item with arrow instead of bullet
+                item_text = bullet_match.group(1)
+                clean_text = self._clean_markdown_text(item_text)
+                # Use arrow symbol instead of default bullet
+                para_text = f"<font color='{QUANTUM_COLORS['accent'].hexval()}'>\u25b8</font> {clean_text}"
+                list_items.append(
+                    Paragraph(para_text, self.styles['CustomBodyText'])
+                )
             else:
                 # End of list or regular text
                 if list_items:
-                    list_flowable = ListFlowable(
-                        list_items,
-                        bulletType='bullet',
-                        bulletColor=QUANTUM_COLORS['primary']
-                    )
-                    self.story.append(list_flowable)
+                    # Add list items directly as paragraphs with proper spacing
+                    for item in list_items:
+                        self.story.append(item)
+                        self.story.append(Spacer(1, 0.03*inch))
                     list_items = []
+                    list_counter = 0
+                    self.story.append(Spacer(1, 0.05*inch))
                 
                 if line.strip():
                     clean_text = self._clean_markdown_text(line.strip())
@@ -773,12 +892,9 @@ class PDFReportGenerator:
         
         # Handle list at end
         if list_items:
-            list_flowable = ListFlowable(
-                list_items,
-                bulletType='bullet',
-                bulletColor=QUANTUM_COLORS['primary']
-            )
-            self.story.append(list_flowable)
+            for item in list_items:
+                self.story.append(item)
+                self.story.append(Spacer(1, 0.03*inch))
     
     def _add_section_charts(self, section_title: str, charts_dir: Path):
         """Add relevant charts for a section.
