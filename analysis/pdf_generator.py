@@ -59,7 +59,6 @@ class NumberedCanvas(canvas.Canvas):
     def __init__(self, *args, **kwargs):
         canvas.Canvas.__init__(self, *args, **kwargs)
         self._saved_page_states = []
-        self.page_num = 1
         
     def showPage(self):
         self._saved_page_states.append(dict(self.__dict__))
@@ -68,13 +67,13 @@ class NumberedCanvas(canvas.Canvas):
     def save(self):
         """Add page numbers and headers/footers to each page."""
         num_pages = len(self._saved_page_states)
-        for state in self._saved_page_states:
+        for page_num, state in enumerate(self._saved_page_states, start=1):
             self.__dict__.update(state)
-            self.draw_page_elements(num_pages)
+            self.draw_page_elements(page_num, num_pages)
             canvas.Canvas.showPage(self)
         canvas.Canvas.save(self)
         
-    def draw_page_elements(self, page_count):
+    def draw_page_elements(self, current_page, total_pages):
         """Draw headers, footers, and page numbers."""
         # Header
         self.setFont("Helvetica-Bold", 10)
@@ -86,22 +85,13 @@ class NumberedCanvas(canvas.Canvas):
         self.setFont("Helvetica", 9)
         self.setFillColor(QUANTUM_COLORS['dark'])
         self.drawCentredString(letter[0]/2, 0.5*inch,
-                             f"Page {self.page_num} of {page_count}")
+                             f"Page {current_page} of {total_pages}")
         
         # Timestamp
         self.setFont("Helvetica", 8)
         self.setFillColor(QUANTUM_COLORS['dark'])
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
         self.drawRightString(letter[0] - inch, 0.5*inch, timestamp)
-        
-        # Decorative line
-        self.setStrokeColor(QUANTUM_COLORS['primary'])
-        self.setLineWidth(1)
-        self.line(inch, letter[1] - 0.6*inch, 
-                 letter[0] - inch, letter[1] - 0.6*inch)
-        self.line(inch, 0.6*inch, letter[0] - inch, 0.6*inch)
-        
-        self.page_num += 1
 
 
 class PDFReportGenerator:
@@ -296,6 +286,32 @@ class PDFReportGenerator:
         
         return pdf_path
     
+    def _clean_markdown_text(self, text: str) -> str:
+        """Clean markdown formatting from text.
+        
+        Args:
+            text: Text with markdown formatting
+            
+        Returns:
+            Clean text without markdown symbols
+        """
+        # Remove markdown bold/italic markers
+        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Bold
+        text = re.sub(r'__([^_]+)__', r'\1', text)  # Bold alt
+        text = re.sub(r'\*([^*]+)\*', r'\1', text)  # Italic
+        text = re.sub(r'_([^_]+)_', r'\1', text)  # Italic alt
+        
+        # Remove inline code markers
+        text = re.sub(r'`([^`]+)`', r'\1', text)
+        
+        # Remove link markdown
+        text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+        
+        # Remove leading/trailing whitespace
+        text = text.strip()
+        
+        return text
+    
     def _parse_markdown(self, markdown_content: str) -> List[Dict[str, Any]]:
         """Parse markdown content into sections.
         
@@ -433,7 +449,7 @@ class PDFReportGenerator:
         # Title
         toc_title = Paragraph("Table of Contents", self.styles['CustomHeading1'])
         self.story.append(toc_title)
-        self.story.append(Spacer(1, 0.3*inch))
+        self.story.append(Spacer(1, 0.2*inch))
         
         # TOC entries
         toc_data = []
@@ -441,20 +457,30 @@ class PDFReportGenerator:
         
         for section in sections:
             if section['level'] <= 2:  # Only include H1 and H2
-                indent = "    " * (section['level'] - 1)
-                title = indent + section['title']
-                toc_data.append([title, str(page_num)])
+                # Clean the title (remove markdown symbols)
+                clean_title = self._clean_markdown_text(section['title'])
+                
+                # Create formatted title with proper indentation
+                if section['level'] == 1:
+                    # Main sections - bold
+                    title_para = Paragraph(f"<b>{clean_title}</b>", self.styles['BodyText'])
+                else:
+                    # Subsections - indented
+                    title_para = Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;{clean_title}", self.styles['BodyText'])
+                
+                page_para = Paragraph(str(page_num), self.styles['BodyText'])
+                toc_data.append([title_para, page_para])
                 page_num += 1  # Simplified page numbering
         
+        # Create table with better formatting
         toc_table = Table(toc_data, colWidths=[5*inch, 1*inch])
         toc_table.setStyle(TableStyle([
-            ('FONT', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('TEXTCOLOR', (0, 0), (-1, -1), QUANTUM_COLORS['dark']),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('LINEBELOW', (0, 0), (-1, -1), 0.5, QUANTUM_COLORS['light']),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6)
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8)
         ]))
         
         self.story.append(toc_table)
@@ -473,8 +499,10 @@ class PDFReportGenerator:
             return
         
         # Title
-        title = Paragraph(exec_summary['title'], self.styles['CustomHeading1'])
+        clean_title = self._clean_markdown_text(exec_summary['title'])
+        title = Paragraph(clean_title, self.styles['CustomHeading1'])
         self.story.append(title)
+        self.story.append(Spacer(1, 0.1*inch))  # Reduced spacing
         
         # Content with special formatting
         content_text = '\n'.join(exec_summary['content'])
@@ -547,6 +575,9 @@ class PDFReportGenerator:
         # Process content
         content_text = '\n'.join(section['content'])
         
+        # Clean markdown formatting from content
+        content_text = self._clean_markdown_text(content_text)
+        
         # Check for tables in markdown
         if '|' in content_text:
             self._process_markdown_tables(content_text)
@@ -597,7 +628,8 @@ class PDFReportGenerator:
                 
                 # Add the non-table line as paragraph
                 if line.strip():
-                    para = Paragraph(line.strip(), self.styles['CustomBodyText'])
+                    clean_text = self._clean_markdown_text(line.strip())
+                    para = Paragraph(clean_text, self.styles['CustomBodyText'])
                     self.story.append(para)
         
         # Handle table at end of content
@@ -613,31 +645,66 @@ class PDFReportGenerator:
         if not data:
             return
         
-        # Calculate column widths
-        num_cols = len(data[0])
-        col_width = 6.5 * inch / num_cols
+        # Clean markdown from table cells and convert to Paragraph objects
+        para_data = []
+        for row_idx, row in enumerate(data):
+            para_row = []
+            for cell in row:
+                clean_text = self._clean_markdown_text(cell)
+                # Use different style for header row
+                if row_idx == 0:
+                    para = Paragraph(f"<b>{clean_text}</b>", self.styles['BodyText'])
+                else:
+                    para = Paragraph(clean_text, self.styles['BodyText'])
+                para_row.append(para)
+            para_data.append(para_row)
         
-        table = Table(data, colWidths=[col_width] * num_cols)
+        # Calculate adaptive column widths based on content
+        num_cols = len(data[0])
+        total_width = 6.5 * inch
+        
+        # Estimate column widths based on content length
+        max_lengths = [0] * num_cols
+        for row in data:
+            for i, cell in enumerate(row):
+                max_lengths[i] = max(max_lengths[i], len(cell))
+        
+        # Calculate proportional widths
+        total_length = sum(max_lengths)
+        if total_length > 0:
+            col_widths = [(length / total_length) * total_width for length in max_lengths]
+        else:
+            col_widths = [total_width / num_cols] * num_cols
+        
+        # Ensure minimum column width
+        min_width = 0.75 * inch
+        col_widths = [max(w, min_width) for w in col_widths]
+        
+        # Normalize if total exceeds page width
+        if sum(col_widths) > total_width:
+            scale = total_width / sum(col_widths)
+            col_widths = [w * scale for w in col_widths]
+        
+        table = Table(para_data, colWidths=col_widths)
         
         # Apply styling
         style = [
-            ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONT', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('BACKGROUND', (0, 0), (-1, 0), QUANTUM_COLORS['primary']),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('TEXTCOLOR', (0, 1), (-1, -1), QUANTUM_COLORS['dark']),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('GRID', (0, 0), (-1, -1), 0.5, QUANTUM_COLORS['light']),
             ('BOX', (0, 0), (-1, -1), 1, QUANTUM_COLORS['primary']),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, HexColor('#F9FAFB')]),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6)
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6)
         ]
         
         table.setStyle(TableStyle(style))
         self.story.append(table)
-        self.story.append(Spacer(1, 0.2*inch))
+        self.story.append(Spacer(1, 0.15*inch))
     
     def _process_code_blocks(self, content: str):
         """Process code blocks in the content.
@@ -651,7 +718,8 @@ class PDFReportGenerator:
             if i % 2 == 0:
                 # Regular text
                 if part.strip():
-                    para = Paragraph(part.strip(), self.styles['CustomBodyText'])
+                    clean_text = self._clean_markdown_text(part.strip())
+                    para = Paragraph(clean_text, self.styles['CustomBodyText'])
                     self.story.append(para)
             else:
                 # Code block
@@ -682,8 +750,9 @@ class PDFReportGenerator:
             if re.match(r'^\s*[-*+]\s', line):
                 # List item
                 item_text = re.sub(r'^\s*[-*+]\s', '', line)
+                clean_text = self._clean_markdown_text(item_text)
                 list_items.append(ListItem(
-                    Paragraph(item_text, self.styles['CustomBodyText']),
+                    Paragraph(clean_text, self.styles['CustomBodyText']),
                     leftIndent=20
                 ))
             else:
@@ -698,7 +767,8 @@ class PDFReportGenerator:
                     list_items = []
                 
                 if line.strip():
-                    para = Paragraph(line.strip(), self.styles['CustomBodyText'])
+                    clean_text = self._clean_markdown_text(line.strip())
+                    para = Paragraph(clean_text, self.styles['CustomBodyText'])
                     self.story.append(para)
         
         # Handle list at end

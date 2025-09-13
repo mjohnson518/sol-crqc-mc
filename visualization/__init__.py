@@ -13,7 +13,7 @@ Key Components:
 - statistical_plots: Statistical distribution and analysis visualizations
 - dashboard: Comprehensive dashboard views
 
-Author: Supernova
+Author: Marc Johnson
 Date: 2025
 """
 

@@ -302,7 +302,7 @@ def generate_reports(results: dict, analysis: dict, output_dir: Path):
     # Configure report generator
     config = ReportConfig(
         title="Solana Quantum Impact Monte Carlo Simulation Report",
-        author="Supernova",
+        author="Marc Johnson",
         include_charts=True,
         include_recommendations=True,
         include_raw_data=False
