@@ -1,5 +1,5 @@
 """
-Technical Appendix 2 for Quantum Risk Assessment
+Appendix 2 for Quantum Risk Assessment
 
 Generates quality supplementary technical documentation with
 embedded visualizations, statistical distributions, and detailed simulation results.
@@ -397,7 +397,7 @@ class PDFReportGenerator:
             textColor=QUANTUM_COLORS['primary']
         )
         title = Paragraph(
-            "<b>TECHNICAL APPENDIX</b>",
+            "<b>APPENDIX 2</b>",
             title_style
         )
         self.story.append(title)
@@ -566,19 +566,34 @@ class PDFReportGenerator:
         toc_data = []
         page_num = 3  # Starting page after cover and TOC
         
+        # Track section numbering separately for TOC
+        toc_section = [0, 0, 0]
+        
+        # Add simulation parameters section to TOC first (it's always section 1)
+        toc_section[0] = 1
+        title_text = f"<b>1. SIMULATION PARAMETERS AND METHODOLOGY</b>"
+        title_para = Paragraph(title_text, self.styles['TOCLevel1'])
+        page_para = Paragraph(str(page_num), self.styles['ProfessionalBody'])
+        toc_data.append([title_para, page_para])
+        page_num += 1
+        
         for section in sections:
+            # Skip executive summary in TOC (it's added separately)
+            clean_title = self._clean_markdown_text(section['title'])
+            if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
+                continue
+            
             if section['level'] <= 2:
-                clean_title = self._clean_markdown_text(section['title'])
-                
                 if section['level'] == 1:
                     # Main sections - bold with section number
-                    self.current_section[0] += 1
-                    title_text = f"<b>{self.current_section[0]}. {clean_title}</b>"
+                    toc_section[0] += 1
+                    toc_section[1] = 0
+                    title_text = f"<b>{toc_section[0]}. {clean_title.upper()}</b>"
                     title_para = Paragraph(title_text, self.styles['TOCLevel1'])
                 else:
                     # Subsections - indented with subsection number
-                    self.current_section[1] += 1
-                    title_text = f"{self.current_section[0]}.{self.current_section[1]} {clean_title}"
+                    toc_section[1] += 1
+                    title_text = f"{toc_section[0]}.{toc_section[1]} {clean_title}"
                     title_para = Paragraph(title_text, self.styles['TOCLevel2'])
                 
                 # Page number
@@ -588,8 +603,7 @@ class PDFReportGenerator:
                 toc_data.append([title_para, page_para])
                 page_num += 1
         
-        # Reset section numbering for main content
-        self.current_section = [0, 0, 0]
+        # Don't reset section numbering here - we'll set it correctly when adding sections
         
         # Create table with proper formatting
         toc_table = Table(toc_data, colWidths=[5.5*inch, 0.5*inch])
@@ -610,9 +624,11 @@ class PDFReportGenerator:
         """Add comprehensive simulation parameters section."""
         self.story.append(PageBreak())
         
-        # Section title
-        self.current_section[0] += 1
-        title_text = f"{self.current_section[0]}. SIMULATION PARAMETERS AND METHODOLOGY"
+        # Section title - this is always section 1
+        self.current_section[0] = 1
+        self.current_section[1] = 0
+        self.current_section[2] = 0
+        title_text = "1. SIMULATION PARAMETERS AND METHODOLOGY"
         title = Paragraph(title_text, self.styles['ProfessionalHeading1'])
         self.story.append(title)
         
@@ -1185,7 +1201,12 @@ class PDFReportGenerator:
     
     def _add_section(self, section: Dict[str, Any], charts_dir: Optional[Path]):
         """Add a content section with professional formatting."""
-        # Update section numbering
+        # Skip Executive Summary (already added separately)
+        clean_title = self._clean_markdown_text(section['title'])
+        if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
+            return
+        
+        # Update section numbering (starting from 2 since 1 is simulation parameters)
         if section['level'] == 1:
             self.current_section[0] += 1
             self.current_section[1] = 0
@@ -1206,13 +1227,6 @@ class PDFReportGenerator:
             style = 'ProfessionalHeading2'
         else:
             style = 'ProfessionalHeading3'
-        
-        # Clean and format title
-        clean_title = self._clean_markdown_text(section['title'])
-        
-        # Skip section number for Executive Summary (already added)
-        if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
-            return
         
         # Add page break for major sections, conditional break for subsections
         if section['level'] == 1:
@@ -1391,7 +1405,7 @@ class PDFReportGenerator:
             leftMargin=0.75*inch,
             topMargin=0.75*inch,
             bottomMargin=0.75*inch,
-            title="Quantum Risk Assessment - Solana Blockchain",
+            title="Appendix 2 - Quantum Risk Assessment for Solana Blockchain",
             author="Marc Johnson",
             subject="Quantum Computing Threat Analysis",
             creator="Professional PDF Generator v2.0"
