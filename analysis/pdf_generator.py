@@ -25,7 +25,8 @@ from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer,
     PageBreak, Image, KeepTogether, Flowable, HRFlowable,
-    ListFlowable, ListItem, FrameBreak, KeepInFrame
+    ListFlowable, ListItem, FrameBreak, KeepInFrame,
+    CondPageBreak, NextPageTemplate
 )
 from reportlab.platypus.tableofcontents import TableOfContents
 from reportlab.lib.colors import HexColor, PCMYKColor, toColor
@@ -979,11 +980,20 @@ class PDFReportGenerator:
             else:
                 # End of list, add to story
                 if current_list:
+                    # Build list elements
+                    list_elements = []
                     for i, item in enumerate(current_list):
-                        story_elements.append(item)
+                        list_elements.append(item)
                         if i < len(current_list) - 1:
-                            story_elements.append(Spacer(1, SPACING['between_list_items']))
-                    story_elements.append(Spacer(1, SPACING['after_paragraph']))
+                            list_elements.append(Spacer(1, SPACING['between_list_items']))
+                    list_elements.append(Spacer(1, SPACING['after_paragraph']))
+                    
+                    # Keep lists together if not too long (10 items or less)
+                    if len(current_list) <= 10:
+                        story_elements.append(KeepTogether(list_elements))
+                    else:
+                        story_elements.extend(list_elements)
+                    
                     current_list = []
                     list_type = None
                 
@@ -996,11 +1006,18 @@ class PDFReportGenerator:
         
         # Handle list at end
         if current_list:
+            list_elements = []
             for i, item in enumerate(current_list):
-                story_elements.append(item)
+                list_elements.append(item)
                 if i < len(current_list) - 1:
-                    story_elements.append(Spacer(1, SPACING['between_list_items']))
-            story_elements.append(Spacer(1, SPACING['after_paragraph']))
+                    list_elements.append(Spacer(1, SPACING['between_list_items']))
+            list_elements.append(Spacer(1, SPACING['after_paragraph']))
+            
+            # Keep lists together if not too long
+            if len(current_list) <= 10:
+                story_elements.append(KeepTogether(list_elements))
+            else:
+                story_elements.extend(list_elements)
     
     def _process_tables_professional(self, content: str, story_elements: list):
         """Process tables with professional formatting and proper text wrapping."""
@@ -1083,8 +1100,8 @@ class PDFReportGenerator:
             scale = total_width / sum(col_widths)
             col_widths = [w * scale for w in col_widths]
         
-        # Create table
-        table = Table(para_data, colWidths=col_widths, repeatRows=1)
+        # Create table with split capability
+        table = Table(para_data, colWidths=col_widths, repeatRows=1, splitByRow=1)
         
         # Apply professional styling
         style = [
@@ -1117,8 +1134,16 @@ class PDFReportGenerator:
         ]
         
         table.setStyle(TableStyle(style))
-        story_elements.append(table)
-        story_elements.append(Spacer(1, SPACING['after_paragraph']))
+        
+        # Keep small tables together (5 rows or less)
+        if len(para_data) <= 5:
+            story_elements.append(KeepTogether([
+                table,
+                Spacer(1, SPACING['after_paragraph'])
+            ]))
+        else:
+            story_elements.append(table)
+            story_elements.append(Spacer(1, SPACING['after_paragraph']))
     
     def _process_code_blocks_professional(self, content: str, story_elements: list):
         """Process code blocks with professional formatting."""
@@ -1147,8 +1172,16 @@ class PDFReportGenerator:
                         code_text.replace(' ', '&nbsp;').replace('\n', '<br/>'),
                         self.styles['CodeBlock']
                     )
-                    story_elements.append(code_para)
-                    story_elements.append(Spacer(1, SPACING['after_paragraph']))
+                    
+                    # Keep small code blocks together (20 lines or less)
+                    if len(code_lines) <= 20:
+                        story_elements.append(KeepTogether([
+                            code_para,
+                            Spacer(1, SPACING['after_paragraph'])
+                        ]))
+                    else:
+                        story_elements.append(code_para)
+                        story_elements.append(Spacer(1, SPACING['after_paragraph']))
     
     def _add_section(self, section: Dict[str, Any], charts_dir: Optional[Path]):
         """Add a content section with professional formatting."""
@@ -1180,6 +1213,13 @@ class PDFReportGenerator:
         # Skip section number for Executive Summary (already added)
         if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
             return
+        
+        # Add page break for major sections, conditional break for subsections
+        if section['level'] == 1:
+            self.story.append(PageBreak())
+        else:
+            # Add conditional page break if less than 3 inches of space
+            self.story.append(CondPageBreak(3*inch))
         
         title_text = f"{section_num} {clean_title.upper() if section['level'] == 1 else clean_title}"
         title = Paragraph(title_text, self.styles[style])
