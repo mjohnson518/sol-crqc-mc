@@ -349,26 +349,32 @@ class PDFReportGenerator:
         
         return styles
     
-    def _clean_markdown_text(self, text: str) -> str:
+    def _clean_markdown_text(self, text: str, preserve_links: bool = False) -> str:
         """Clean markdown formatting from text for PDF display.
         
         Args:
             text: Text with markdown formatting
+            preserve_links: If True, convert markdown links to hyperlinks
             
         Returns:
-            Clean text without markdown symbols
+            Clean text without markdown symbols, optionally with hyperlinks
         """
-        # Remove markdown bold/italic markers
-        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Bold
-        text = re.sub(r'__([^_]+)__', r'\1', text)  # Bold alt
-        text = re.sub(r'\*([^*]+)\*', r'\1', text)  # Italic
-        text = re.sub(r'_([^_]+)_', r'\1', text)  # Italic alt
+        # Convert or remove markdown links based on preserve_links flag
+        if preserve_links:
+            # Convert markdown links to ReportLab hyperlinks
+            text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" color="#1e3a8a">\1</a>', text)
+        else:
+            # Remove link markdown, keeping only the text
+            text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+        
+        # Convert markdown bold/italic to HTML tags for ReportLab
+        text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)  # Bold
+        text = re.sub(r'__([^_]+)__', r'<b>\1</b>', text)  # Bold alt
+        text = re.sub(r'\*([^*]+)\*', r'<i>\1</i>', text)  # Italic
+        text = re.sub(r'_([^_]+)_', r'<i>\1</i>', text)  # Italic alt
         
         # Remove inline code markers
         text = re.sub(r'`([^`]+)`', r'\1', text)
-        
-        # Remove link markdown
-        text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
         
         # Remove bullet point symbols (including squares) - anywhere in text
         text = re.sub(r'[■•◦▪▸→]\s*', '', text)
@@ -909,12 +915,13 @@ class PDFReportGenerator:
         story_elements.append(risk_table)
         story_elements.append(Spacer(1, SPACING['after_heading_1']))
     
-    def _process_content_professionally(self, content: str, story_elements: list = None):
+    def _process_content_professionally(self, content: str, story_elements: list = None, preserve_links: bool = False):
         """Process content with professional formatting rules.
         
         Args:
             content: Raw content text
             story_elements: List to append elements to (or self.story if None)
+            preserve_links: If True, convert markdown links to clickable hyperlinks
         """
         if story_elements is None:
             story_elements = self.story
@@ -925,18 +932,18 @@ class PDFReportGenerator:
         elif '|' in content and '---' in content:
             self._process_tables_professional(content, story_elements)
         elif re.search(r'^\s*[-*+•◦▪]\s', content, re.MULTILINE) or re.search(r'^\s*\d+\.\s', content, re.MULTILINE):
-            self._process_lists_professional(content, story_elements)
+            self._process_lists_professional(content, story_elements, preserve_links)
         else:
             # Process as regular paragraphs
             paragraphs = content.split('\n\n')
             for para_text in paragraphs:
                 if para_text.strip():
-                    clean_text = self._clean_markdown_text(para_text.strip())
+                    clean_text = self._clean_markdown_text(para_text.strip(), preserve_links=preserve_links)
                     para = Paragraph(clean_text, self.styles['ProfessionalBody'])
                     story_elements.append(para)
                     story_elements.append(Spacer(1, SPACING['after_paragraph']))
     
-    def _process_lists_professional(self, content: str, story_elements: list):
+    def _process_lists_professional(self, content: str, story_elements: list, preserve_links: bool = False):
         """Process lists with professional formatting."""
         lines = content.split('\n')
         current_list = []
@@ -950,13 +957,13 @@ class PDFReportGenerator:
             
             if numbered_match:
                 number = numbered_match.group(1)
-                text = self._clean_markdown_text(numbered_match.group(2))
+                text = self._clean_markdown_text(numbered_match.group(2), preserve_links=preserve_links)
                 item_text = f"<b>{number}.</b>  {text}"
                 current_list.append(Paragraph(item_text, self.styles['ProfessionalBody']))
                 list_type = 'numbered'
                 
             elif bullet_match:
-                text = self._clean_markdown_text(bullet_match.group(1))
+                text = self._clean_markdown_text(bullet_match.group(1), preserve_links=preserve_links)
                 
                 # Determine bullet level and use simple formatting
                 if line.startswith('    ') or line.startswith('\t\t'):
@@ -1254,9 +1261,14 @@ class PDFReportGenerator:
         
         self.story.append(KeepTogether(title_group))
         
+        # Check if this is a references or appendix section (should have clickable links)
+        preserve_links = False
+        if any(term in clean_title.lower() for term in ['reference', 'appendix', 'citation', 'bibliography', 'technical appendix']):
+            preserve_links = True
+        
         # Process section content
         content_text = '\n'.join(section['content'])
-        self._process_content_professionally(content_text)
+        self._process_content_professionally(content_text, preserve_links=preserve_links)
         
         # Add related charts if available
         if charts_dir and section['title']:
