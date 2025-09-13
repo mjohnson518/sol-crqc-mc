@@ -38,6 +38,7 @@ from analysis.statistical_analysis import StatisticalAnalyzer
 from analysis.scenario_comparison import ScenarioComparator
 from analysis.risk_assessment import RiskAssessor
 from analysis.report_generator import ReportGenerator, ReportConfig
+from analysis.pdf_generator import PDFReportGenerator
 
 # Import visualization tools
 from visualization.timeline_plots import TimelinePlotter
@@ -332,6 +333,31 @@ def generate_reports(results: dict, analysis: dict, output_dir: Path):
     json_path = reports_dir / "simulation_summary.json"
     with open(json_path, 'w') as f:
         json.dump(json_summary, f, indent=2)
+    
+    # Generate PDF report
+    print("  Creating PDF report...")
+    try:
+        pdf_generator = PDFReportGenerator(reports_dir)
+        
+        # Check if markdown report exists
+        md_report_path = reports_dir / "simulation_report.md"
+        if md_report_path.exists():
+            # Look for charts directory
+            charts_dir = output_dir / "charts"
+            if not charts_dir.exists():
+                charts_dir = None
+            
+            # Generate PDF
+            pdf_path = pdf_generator.generate_pdf(
+                markdown_report_path=md_report_path,
+                charts_dir=charts_dir,
+                output_filename="quantum_risk_report.pdf"
+            )
+            print(f"  ✓ PDF report generated: {pdf_path.name}")
+        else:
+            print("  ⚠ Markdown report not found, skipping PDF generation")
+    except Exception as e:
+        print(f"  ⚠ PDF generation failed: {e}")
     
     print(f"✓ Reports saved to: {reports_dir}")
 
