@@ -123,14 +123,14 @@ class PDFReportGenerator:
             fontName='Helvetica-Bold'
         ))
         
-        # Heading 1
+        # Heading 1 - 18pt
         styles.add(ParagraphStyle(
             name='CustomHeading1',
             parent=styles['Heading1'],
             fontSize=18,
             textColor=QUANTUM_COLORS['primary'],
-            spaceAfter=12,
-            spaceBefore=12,
+            spaceAfter=8,
+            spaceBefore=10,
             fontName='Helvetica-Bold',
             borderWidth=2,
             borderColor=QUANTUM_COLORS['primary'],
@@ -138,25 +138,25 @@ class PDFReportGenerator:
             borderRadius=2
         ))
         
-        # Heading 2
+        # Heading 2 - 14pt
         styles.add(ParagraphStyle(
             name='CustomHeading2',
             parent=styles['Heading2'],
             fontSize=14,
             textColor=QUANTUM_COLORS['secondary'],
-            spaceAfter=10,
-            spaceBefore=10,
+            spaceAfter=6,
+            spaceBefore=8,
             fontName='Helvetica-Bold'
         ))
         
-        # Heading 3
+        # Heading 3 - 12pt
         styles.add(ParagraphStyle(
             name='CustomHeading3',
             parent=styles['Heading3'],
             fontSize=12,
             textColor=QUANTUM_COLORS['dark'],
-            spaceAfter=8,
-            spaceBefore=8,
+            spaceAfter=6,
+            spaceBefore=6,
             fontName='Helvetica-Bold'
         ))
         
@@ -449,7 +449,7 @@ class PDFReportGenerator:
         # Title
         toc_title = Paragraph("Table of Contents", self.styles['CustomHeading1'])
         self.story.append(toc_title)
-        self.story.append(Spacer(1, 0.15*inch))
+        self.story.append(Spacer(1, 0.08*inch))
         
         # TOC entries
         toc_data = []
@@ -462,11 +462,11 @@ class PDFReportGenerator:
                 
                 # Create formatted title with arrows instead of bullets
                 if section['level'] == 1:
-                    # Main sections - bold with arrow
-                    title_para = Paragraph(f"<font color='{QUANTUM_COLORS['primary'].hexval()}'>\u25b8</font> <b>{clean_title}</b>", self.styles['BodyText'])
+                    # Main sections - bold with chevron arrow
+                    title_para = Paragraph(f"<font color='{QUANTUM_COLORS['primary'].hexval()}'>\u25b6</font> <b>{clean_title}</b>", self.styles['BodyText'])
                 else:
-                    # Subsections - indented with smaller arrow
-                    title_para = Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<font color='{QUANTUM_COLORS['secondary'].hexval()}'>\u2192</font> {clean_title}", self.styles['BodyText'])
+                    # Subsections - indented with dash
+                    title_para = Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<font color='{QUANTUM_COLORS['secondary'].hexval()}'>\u2013</font> {clean_title}", self.styles['BodyText'])
                 
                 page_para = Paragraph(str(page_num), self.styles['BodyText'])
                 toc_data.append([title_para, page_para])
@@ -587,94 +587,217 @@ class PDFReportGenerator:
                     self.story.append(para)
                     # Reduced spacing between paragraphs
                     if i < len(paragraphs) - 1:
-                        self.story.append(Spacer(1, 0.06*inch))
+                        self.story.append(Spacer(1, 0.04*inch))
     
     def _process_risk_matrix(self, content: str):
-        """Process risk matrix content into a formatted table."""
-        lines = content.split('\n')
-        matrix_data = []
+        """Process risk matrix content into a professional colored table."""
+        # Define risk colors
+        risk_colors = {
+            'low': HexColor('#10B981'),      # Green
+            'medium': HexColor('#F59E0B'),   # Yellow/Amber
+            'high': HexColor('#FB923C'),     # Orange
+            'critical': HexColor('#EF4444')  # Red
+        }
         
-        for line in lines:
-            if 'Risk Status' in line or 'Risk Score' in line or 'Attack Probability' in line:
-                # Extract key-value pairs
-                parts = line.split(':')
-                if len(parts) == 2:
-                    key = self._clean_markdown_text(parts[0].strip())
-                    value = self._clean_markdown_text(parts[1].strip())
-                    matrix_data.append([key, value])
-        
-        if matrix_data:
-            # Create risk matrix table
-            table = Table(matrix_data, colWidths=[3*inch, 3*inch])
-            table.setStyle(TableStyle([
-                ('FONT', (0, 0), (-1, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 11),
-                ('TEXTCOLOR', (0, 0), (0, -1), QUANTUM_COLORS['primary']),
-                ('TEXTCOLOR', (1, 0), (1, -1), QUANTUM_COLORS['dark']),
-                ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
-                ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-                ('GRID', (0, 0), (-1, -1), 1, QUANTUM_COLORS['light']),
-                ('BACKGROUND', (0, 0), (-1, -1), HexColor('#F9FAFB')),
-                ('TOPPADDING', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 10)
-            ]))
+        # Check if this is an ASCII risk matrix
+        if 'Probability' in content and '|' in content and 'Impact' in content:
+            # Create professional risk matrix table
+            matrix_headers = ['Risk Level', 'Probability', 'Impact', 'Time Horizon']
+            matrix_data = [
+                ['Low', '< 20%', 'Minimal', '> 10 years'],
+                ['Medium', '20-50%', 'Moderate', '5-10 years'],
+                ['High', '50-80%', 'Significant', '2-5 years'],
+                ['Critical', '> 80%', 'Catastrophic', '< 2 years']
+            ]
+            
+            # Create table with headers
+            table_data = [[Paragraph(f"<b><font color='white'>{h}</font></b>", self.styles['BodyText']) for h in matrix_headers]]
+            
+            # Add data rows with colored backgrounds
+            for i, row in enumerate(matrix_data):
+                level = row[0].lower()
+                color = risk_colors.get(level, HexColor('#F3F4F6'))
+                # Use white text on darker backgrounds
+                if level in ['high', 'critical']:
+                    row_para = [Paragraph(f"<font color='white'>{cell}</font>", self.styles['BodyText']) for cell in row]
+                else:
+                    row_para = [Paragraph(cell, self.styles['BodyText']) for cell in row]
+                table_data.append(row_para)
+            
+            table = Table(table_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+            
+            # Apply styling with colored rows
+            style = [
+                ('BACKGROUND', (0, 0), (-1, 0), QUANTUM_COLORS['primary']),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 1, colors.white),
+                ('BACKGROUND', (0, 1), (-1, 1), risk_colors['low']),
+                ('BACKGROUND', (0, 2), (-1, 2), risk_colors['medium']),
+                ('BACKGROUND', (0, 3), (-1, 3), risk_colors['high']),
+                ('BACKGROUND', (0, 4), (-1, 4), risk_colors['critical']),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8)
+            ]
+            
+            table.setStyle(TableStyle(style))
             self.story.append(table)
-            self.story.append(Spacer(1, 0.1*inch))
+            self.story.append(Spacer(1, 0.08*inch))
         else:
-            # Fallback to paragraph
-            para = Paragraph(self._clean_markdown_text(content), self.styles['CustomBodyText'])
-            self.story.append(para)
+            # Process regular risk content
+            lines = content.split('\n')
+            matrix_data = []
+            
+            for line in lines:
+                if 'Risk Status' in line or 'Risk Score' in line or 'Attack Probability' in line:
+                    parts = line.split(':')
+                    if len(parts) == 2:
+                        key = self._clean_markdown_text(parts[0].strip())
+                        value = self._clean_markdown_text(parts[1].strip())
+                        
+                        # Format percentages properly
+                        if '%' in value:
+                            try:
+                                num = float(value.replace('%', '').strip())
+                                value = f"{num:.1f}%"
+                            except:
+                                pass
+                        
+                        matrix_data.append([key, value])
+            
+            if matrix_data:
+                # Create risk metrics table
+                table = Table(matrix_data, colWidths=[3*inch, 3*inch])
+                table.setStyle(TableStyle([
+                    ('FONT', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 11),
+                    ('TEXTCOLOR', (0, 0), (0, -1), QUANTUM_COLORS['primary']),
+                    ('TEXTCOLOR', (1, 0), (1, -1), QUANTUM_COLORS['dark']),
+                    ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+                    ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                    ('GRID', (0, 0), (-1, -1), 1, QUANTUM_COLORS['light']),
+                    ('BACKGROUND', (0, 0), (-1, -1), HexColor('#F9FAFB')),
+                    ('TOPPADDING', (0, 0), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8)
+                ]))
+                self.story.append(table)
+                self.story.append(Spacer(1, 0.06*inch))
+            else:
+                # Fallback to paragraph
+                para = Paragraph(self._clean_markdown_text(content), self.styles['CustomBodyText'])
+                self.story.append(para)
     
     def _process_key_metrics(self, content: str):
-        """Process key metrics into a numbered list."""
+        """Process key metrics into a properly formatted numbered list."""
         lines = content.split('\n')
         metrics = []
         counter = 1
         
+        # Process lines into metrics
         for line in lines:
-            if line.strip() and not 'Key Success Metrics' in line:
-                clean_text = self._clean_markdown_text(line.strip())
+            line = line.strip()
+            if line and 'Key Success Metrics' not in line and 'Key Metrics' not in line:
+                # Remove any existing bullet points or numbering
+                clean_text = re.sub(r'^[-*\u2022\u25e6\u25b8\u25b6]+\s*', '', line)
+                clean_text = re.sub(r'^\d+\.\s*', '', clean_text)
+                clean_text = self._clean_markdown_text(clean_text)
+                
                 if clean_text:
-                    para_text = f"<b>{counter}.</b> {clean_text}"
+                    # Format as numbered list with proper indentation
+                    para_text = f"<b>{counter}.</b>&nbsp;&nbsp;{clean_text}"
                     metrics.append(Paragraph(para_text, self.styles['CustomBodyText']))
                     counter += 1
         
-        for metric in metrics:
-            self.story.append(metric)
-            self.story.append(Spacer(1, 0.03*inch))
-        
+        # Add metrics with proper spacing
         if metrics:
-            self.story.append(Spacer(1, 0.05*inch))
+            for i, metric in enumerate(metrics):
+                self.story.append(metric)
+                if i < len(metrics) - 1:
+                    self.story.append(Spacer(1, 0.02*inch))
+            self.story.append(Spacer(1, 0.04*inch))
     
     def _process_simulation_params(self, content: str):
-        """Process simulation parameters into a formatted structure."""
+        """Process simulation parameters into a professional formatted table."""
         lines = content.split('\n')
         param_data = []
         
-        for line in lines:
-            if ':' in line and not 'Simulation Parameters' in line:
-                parts = line.split(':', 1)
-                if len(parts) == 2:
-                    key = self._clean_markdown_text(parts[0].strip())
-                    value = self._clean_markdown_text(parts[1].strip())
-                    param_data.append([key, value])
+        # Check if this is a JSON code block
+        if '```' in content or '{' in content:
+            # Extract parameters from JSON-like content
+            json_match = re.search(r'\{([^}]+)\}', content, re.DOTALL)
+            if json_match:
+                json_content = json_match.group(1)
+                json_lines = json_content.split('\n')
+                
+                for line in json_lines:
+                    line = line.strip().strip(',').strip('"')
+                    if ':' in line:
+                        parts = line.split(':', 1)
+                        key = parts[0].strip().strip('"').replace('_', ' ').title()
+                        value = parts[1].strip().strip('"')
+                        
+                        # Format values appropriately
+                        if value.replace('.', '').replace('-', '').isdigit():
+                            if '.' in value:
+                                value = f"{float(value):.2f}"
+                            else:
+                                value = f"{int(value):,}"
+                        
+                        param_data.append([key, value])
+        else:
+            # Process regular parameter lines
+            for line in lines:
+                if ':' in line and 'Simulation Parameters' not in line and 'Parameters' not in line:
+                    parts = line.split(':', 1)
+                    if len(parts) == 2:
+                        key = self._clean_markdown_text(parts[0].strip())
+                        value = self._clean_markdown_text(parts[1].strip())
+                        
+                        # Format percentages and numbers
+                        if '%' in value:
+                            try:
+                                num = float(value.replace('%', '').strip())
+                                value = f"{num:.1f}%"
+                            except:
+                                pass
+                        
+                        param_data.append([key, value])
         
         if param_data:
-            # Create parameters table
-            table = Table(param_data, colWidths=[2.5*inch, 3.5*inch])
+            # Add header row
+            header_data = [
+                Paragraph("<b><font color='white'>Parameter</font></b>", self.styles['BodyText']),
+                Paragraph("<b><font color='white'>Value</font></b>", self.styles['BodyText'])
+            ]
+            
+            # Convert data to paragraphs
+            table_data = [header_data]
+            for row in param_data:
+                table_data.append([
+                    Paragraph(row[0], self.styles['BodyText']),
+                    Paragraph(str(row[1]), self.styles['BodyText'])
+                ])
+            
+            # Create parameters table with professional styling
+            table = Table(table_data, colWidths=[3*inch, 3*inch])
             table.setStyle(TableStyle([
-                ('FONT', (0, 0), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('TEXTCOLOR', (0, 0), (0, -1), QUANTUM_COLORS['secondary']),
-                ('TEXTCOLOR', (1, 0), (1, -1), QUANTUM_COLORS['dark']),
-                ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-                ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-                ('LINEBELOW', (0, 0), (-1, -1), 0.5, QUANTUM_COLORS['light']),
-                ('TOPPADDING', (0, 0), (-1, -1), 4),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 4)
+                ('BACKGROUND', (0, 0), (-1, 0), QUANTUM_COLORS['primary']),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 0.5, QUANTUM_COLORS['light']),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, HexColor('#F9FAFB')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8)
             ]))
             self.story.append(table)
-            self.story.append(Spacer(1, 0.1*inch))
+            self.story.append(Spacer(1, 0.06*inch))
         else:
             # Fallback to regular processing
             self._process_lists(content)
@@ -694,8 +817,25 @@ class PDFReportGenerator:
         else:
             style = 'CustomHeading3'
         
-        title = Paragraph(section['title'], self.styles[style])
-        self.story.append(title)
+        # Clean section title
+        clean_title = self._clean_markdown_text(section['title'])
+        title = Paragraph(clean_title, self.styles[style])
+        
+        # Use KeepTogether to prevent orphan headers
+        title_group = [title, Spacer(1, 0.08*inch)]
+        
+        # Add subtle horizontal rule for major sections
+        if section['level'] == 1:
+            hr = HRFlowable(
+                width="100%",
+                thickness=0.5,
+                color=QUANTUM_COLORS['light'],
+                spaceBefore=2,
+                spaceAfter=6
+            )
+            title_group.append(hr)
+        
+        self.story.append(KeepTogether(title_group))
         
         # Process content with smart formatting
         content_text = '\n'.join(section['content'])
@@ -806,7 +946,7 @@ class PDFReportGenerator:
         
         table.setStyle(TableStyle(style))
         self.story.append(table)
-        self.story.append(Spacer(1, 0.15*inch))
+        self.story.append(Spacer(1, 0.08*inch))
     
     def _process_code_blocks(self, content: str):
         """Process code blocks in the content.
@@ -866,11 +1006,18 @@ class PDFReportGenerator:
                 )
                 list_counter += 1
             elif bullet_match:
-                # Bullet list item with arrow instead of bullet
+                # Bullet list item with standard round bullet
                 item_text = bullet_match.group(1)
                 clean_text = self._clean_markdown_text(item_text)
-                # Use arrow symbol instead of default bullet
-                para_text = f"<font color='{QUANTUM_COLORS['accent'].hexval()}'>\u25b8</font> {clean_text}"
+                
+                # Check for sub-bullets (indented items)
+                if line.startswith('  ') or line.startswith('\t'):
+                    # Sub-bullet with hollow circle
+                    para_text = f"&nbsp;&nbsp;&nbsp;&nbsp;<font size='12'>\u25e6</font> {clean_text}"
+                else:
+                    # Main bullet with standard round bullet
+                    para_text = f"<font size='12'>\u2022</font> {clean_text}"
+                
                 list_items.append(
                     Paragraph(para_text, self.styles['CustomBodyText'])
                 )
@@ -880,7 +1027,7 @@ class PDFReportGenerator:
                     # Add list items directly as paragraphs with proper spacing
                     for item in list_items:
                         self.story.append(item)
-                        self.story.append(Spacer(1, 0.03*inch))
+                        self.story.append(Spacer(1, 0.02*inch))
                     list_items = []
                     list_counter = 0
                     self.story.append(Spacer(1, 0.05*inch))

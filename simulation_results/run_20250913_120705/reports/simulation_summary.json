@@ -28,8 +28,8 @@
           "95": "43316005748.89195",
           "99": "43358831330.800514"
         },
-        "skewness": "-0.3984024327994892",
-        "kurtosis": "-1.676718307821547",
+        "skewness": "-0.39840243279948917",
+        "kurtosis": "-1.6767183078215473",
         "confidence_interval": "(14616642715.83564, 40356531664.52026)",
         "sample_size": "9"
       }
@@ -39,7 +39,7 @@
       "risk_level": {
         "_value_": "Moderate",
         "_name_": "MODERATE",
-        "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x104222710>, '__module__': 'analysis.risk_assessment', '__doc__': 'Risk level categories.', '_member_names_': ['CRITICAL', 'HIGH', 'MODERATE', 'LOW', 'MINIMAL'], '_member_map_': {'CRITICAL': <RiskLevel.CRITICAL: 'Critical'>, 'HIGH': <RiskLevel.HIGH: 'High'>, 'MODERATE': <RiskLevel.MODERATE: 'Moderate'>, 'LOW': <RiskLevel.LOW: 'Low'>, 'MINIMAL': <RiskLevel.MINIMAL: 'Minimal'>}, '_member_type_': <class 'object'>, '_value2member_map_': {'Critical': <RiskLevel.CRITICAL: 'Critical'>, 'High': <RiskLevel.HIGH: 'High'>, 'Moderate': <RiskLevel.MODERATE: 'Moderate'>, 'Low': <RiskLevel.LOW: 'Low'>, 'Minimal': <RiskLevel.MINIMAL: 'Minimal'>}, 'CRITICAL': <RiskLevel.CRITICAL: 'Critical'>, 'HIGH': <RiskLevel.HIGH: 'High'>, 'MODERATE': <RiskLevel.MODERATE: 'Moderate'>, 'LOW': <RiskLevel.LOW: 'Low'>, 'MINIMAL': <RiskLevel.MINIMAL: 'Minimal'>, '__new__': <function Enum.__new__ at 0x104222680>}"
+        "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x1043a6710>, '__module__': 'analysis.risk_assessment', '__doc__': 'Risk level categories.', '_member_names_': ['CRITICAL', 'HIGH', 'MODERATE', 'LOW', 'MINIMAL'], '_member_map_': {'CRITICAL': <RiskLevel.CRITICAL: 'Critical'>, 'HIGH': <RiskLevel.HIGH: 'High'>, 'MODERATE': <RiskLevel.MODERATE: 'Moderate'>, 'LOW': <RiskLevel.LOW: 'Low'>, 'MINIMAL': <RiskLevel.MINIMAL: 'Minimal'>}, '_member_type_': <class 'object'>, '_value2member_map_': {'Critical': <RiskLevel.CRITICAL: 'Critical'>, 'High': <RiskLevel.HIGH: 'High'>, 'Moderate': <RiskLevel.MODERATE: 'Moderate'>, 'Low': <RiskLevel.LOW: 'Low'>, 'Minimal': <RiskLevel.MINIMAL: 'Minimal'>}, 'CRITICAL': <RiskLevel.CRITICAL: 'Critical'>, 'HIGH': <RiskLevel.HIGH: 'High'>, 'MODERATE': <RiskLevel.MODERATE: 'Moderate'>, 'LOW': <RiskLevel.LOW: 'Low'>, 'MINIMAL': <RiskLevel.MINIMAL: 'Minimal'>, '__new__': <function Enum.__new__ at 0x1043a6680>}"
       },
       "probability": "0.8070449948560167",
       "impact": "0.33161847916775344",
@@ -50,14 +50,14 @@
       "crqc_years": [],
       "economic_losses": [
         43235707782.8134,
-        39610383200.765144,
         43201285006.97891,
-        6585310260.313289,
         21887085851.685966,
+        6585310260.313289,
+        39610383200.765144,
         39562930131.79297,
-        43369537726.27766,
         5220138116.984325,
-        4706906633.989898
+        4706906633.989898,
+        43369537726.27766
       ],
       "attack_success_rates": []
     }
