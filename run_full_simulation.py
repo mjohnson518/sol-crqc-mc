@@ -163,22 +163,47 @@ def analyze_results(results: dict, output_dir: Path) -> dict:
     print("\n" + "-"*50)
     print("Analyzing results...")
     
+    # Extract raw data arrays from results if available
+    raw_data = {}
+    if 'raw_results' in results and results['raw_results']:
+        # Extract arrays from raw results
+        raw_data['crqc_years'] = []
+        raw_data['economic_losses'] = []
+        raw_data['attack_success_rates'] = []
+        
+        for iteration in results['raw_results']:
+            if isinstance(iteration, dict):
+                # Extract CRQC year
+                quantum = iteration.get('quantum_timeline', {})
+                if quantum and 'first_crqc_year' in quantum:
+                    raw_data['crqc_years'].append(quantum['first_crqc_year'])
+                
+                # Extract economic loss
+                economic = iteration.get('economic_impact', {})
+                if economic and 'total_loss_usd' in economic:
+                    raw_data['economic_losses'].append(economic['total_loss_usd'])
+                
+                # Extract attack success rate
+                attack = iteration.get('attack_scenarios', {})
+                if attack and 'attack_success' in attack:
+                    raw_data['attack_success_rates'].append(1.0 if attack['attack_success'] else 0.0)
+    
     # Statistical analysis
     analyzer = StatisticalAnalyzer(confidence_level=0.95)
     
-    # Analyze key variables if they exist in results
+    # Analyze key variables if they exist in raw data
     stats_summary = {}
-    if 'crqc_years' in results:
+    if raw_data.get('crqc_years'):
         stats_summary['crqc_years'] = analyzer.analyze_variable(
-            results['crqc_years'], 'CRQC Emergence Year'
+            raw_data['crqc_years'], 'CRQC Emergence Year'
         )
-    if 'economic_losses' in results:
+    if raw_data.get('economic_losses'):
         stats_summary['economic_losses'] = analyzer.analyze_variable(
-            results['economic_losses'], 'Economic Loss'
+            raw_data['economic_losses'], 'Economic Loss'
         )
-    if 'attack_success_rates' in results:
+    if raw_data.get('attack_success_rates'):
         stats_summary['attack_success_rates'] = analyzer.analyze_variable(
-            results['attack_success_rates'], 'Attack Success Rate'
+            raw_data['attack_success_rates'], 'Attack Success Rate'
         )
     
     # Risk assessment
@@ -189,7 +214,8 @@ def analyze_results(results: dict, output_dir: Path) -> dict:
     analysis_path = output_dir / "data" / "analysis_summary.json"
     analysis_results = {
         'statistics': convert_to_serializable(stats_summary),
-        'risk_metrics': convert_to_serializable(risk_metrics)
+        'risk_metrics': convert_to_serializable(risk_metrics),
+        'raw_data': raw_data  # Include raw data for visualization
     }
     with open(analysis_path, 'w') as f:
         json.dump(analysis_results, f, indent=2)

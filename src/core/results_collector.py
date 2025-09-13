@@ -55,15 +55,23 @@ class ResultsStatistics:
         )
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        return {
+        """Convert to dictionary with flattened percentiles."""
+        result = {
             'mean': self.mean,
             'median': self.median,
             'std': self.std,
             'min': self.min,
-            'max': self.max,
-            'percentiles': self.percentiles
+            'max': self.max
         }
+        
+        # Flatten percentiles with expected keys
+        for p, value in self.percentiles.items():
+            result[f'percentile_{p}'] = value
+        
+        # Keep nested percentiles for backward compatibility
+        result['percentiles'] = self.percentiles
+        
+        return result
 
 
 class ResultsCollector:
