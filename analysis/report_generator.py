@@ -490,7 +490,9 @@ class ReportGenerator:
         assessment.append("")
         assessment.append("- **Active Validators:** 1,032")
         assessment.append("- **Total Stake:** ~380M SOL (~$91.5B USD at $240.86/SOL)")
-        assessment.append("- **Consensus Mechanism:** Proof of Stake with Tower BFT")
+        # Solana uses Proof of History as its core innovation for ordering transactions,
+        # combined with Proof of Stake for validator selection and Tower BFT for consensus
+        assessment.append("- **Consensus Mechanism:** Proof of History (PoH) with Proof of Stake (PoS) and Tower BFT")
         assessment.append("- **Cryptography:** Ed25519 signatures (quantum-vulnerable)")
         assessment.append("")
         

@@ -1,6 +1,6 @@
 # 🔒 Solana Quantum Impact Monte Carlo Simulation Report
 
-**Generated:** 2025-09-13 12:22:40
+**Generated:** 2025-09-13 12:31:49
 **Simulation Type:** Comprehensive Quantum Threat Assessment
 **Network:** Solana Blockchain
 **Author:** Marc Johnson
@@ -196,7 +196,7 @@ Post-attack recovery scenarios:
 
 - **Active Validators:** 1,032
 - **Total Stake:** ~380M SOL (~$91.5B USD at $240.86/SOL)
-- **Consensus Mechanism:** Proof of Stake with Tower BFT
+- **Consensus Mechanism:** Proof of History (PoH) with Proof of Stake (PoS) and Tower BFT
 - **Cryptography:** Ed25519 signatures (quantum-vulnerable)
 
 ### Vulnerability Factors

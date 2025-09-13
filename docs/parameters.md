@@ -125,7 +125,7 @@ This document provides detailed explanations for all parameters used in the Sola
     'control': 0.667  # 66.7% - Consensus control threshold
 }
 ```
-- **Rationale**: Solana consensus mechanism requirements
+- **Rationale**: Solana's Tower BFT consensus mechanism requirements (used with PoH/PoS)
 - **Reference**: [Solana Documentation](https://docs.solana.com/cluster/stake-delegation-and-rewards)
 
 ### Migration Parameters
