@@ -52,7 +52,7 @@ htmlcov/
 docs/_build/
 
 # Output data
-data/output/results/*.json
+data/output/results/
 data/output/figures/*.png
 data/output/figures/*.pdf
 data/output/figures/*.svg
@@ -67,4 +67,3 @@ logs/
 # Temporary files
 *.tmp
 *.bak
-data/output/results/*.json

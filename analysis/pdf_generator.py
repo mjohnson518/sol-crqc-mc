@@ -1,11 +1,11 @@
 """
-Professional PDF Report Generator for Quantum Risk Simulation
+Technical Appendix for Quantum Risk Assessment
 
-Generates PhD-level quality PDF reports with professional formatting,
-embedded visualizations, and publication-ready styling.
+Generates quality supplementary technical documentation with
+embedded visualizations, statistical distributions, and detailed simulation results.
 
 Author: Marc Johnson
-Version: 2.0.0
+Version: 3.0.0
 """
 
 import os
@@ -161,11 +161,12 @@ class ProfessionalCanvas(canvas.Canvas):
 class PDFReportGenerator:
     """Generates professional PhD-level quality PDF reports."""
     
-    def __init__(self, output_dir: Path):
+    def __init__(self, output_dir: Path, simulation_metadata: Optional[Dict[str, Any]] = None):
         """Initialize the PDF generator with professional settings.
         
         Args:
             output_dir: Directory to save PDF reports
+            simulation_metadata: Optional metadata from simulation run
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -173,6 +174,15 @@ class PDFReportGenerator:
         self.story = []
         self.section_numbers = {}
         self.current_section = [0, 0, 0]  # For section numbering
+        
+        # Store simulation metadata with defaults
+        self.simulation_metadata = simulation_metadata or {
+            'n_iterations': 100,
+            'runtime_seconds': 200,
+            'successful_iterations': 0,
+            'failed_iterations': 0,
+            'confidence_level': 0.95
+        }
         
     def _create_professional_styles(self) -> Dict[str, ParagraphStyle]:
         """Create professional paragraph styles with sophisticated typography."""
@@ -359,6 +369,9 @@ class PDFReportGenerator:
         # Remove link markdown
         text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
         
+        # Remove bullet point symbols (including squares)
+        text = re.sub(r'^[■•◦▪▸→\-\*]\s*', '', text)
+        
         # Clean up multiple spaces
         text = re.sub(r'\s+', ' ', text)
         
@@ -368,13 +381,13 @@ class PDFReportGenerator:
         return text
     
     def _add_professional_cover_page(self):
-        """Add a sophisticated professional cover page with elegant design."""
+        """Add a professional cover page for technical appendix."""
         # Add some initial spacing
         self.story.append(Spacer(1, 1.5*inch))
         
         # Main title
         title = Paragraph(
-            "<b>QUANTUM RISK ASSESSMENT</b>",
+            "<b>TECHNICAL APPENDIX</b>",
             self.styles['ProfessionalTitle']
         )
         self.story.append(title)
@@ -389,7 +402,7 @@ class PDFReportGenerator:
             spaceAfter=12
         )
         subtitle = Paragraph(
-            "Solana Blockchain Vulnerability Analysis",
+            "Detailed Monte Carlo Simulation Results<br/>for Solana Quantum Risk Assessment",
             subtitle_style
         )
         self.story.append(subtitle)
@@ -399,13 +412,29 @@ class PDFReportGenerator:
         self._add_professional_design_element()
         self.story.append(Spacer(1, 0.3*inch))
         
-        # Metadata table with professional styling
+        # Metadata table with actual simulation details
+        total_iterations = self.simulation_metadata.get('n_iterations', 100)
+        successful = self.simulation_metadata.get('successful_iterations', total_iterations)
+        failed = self.simulation_metadata.get('failed_iterations', 0)
+        runtime = self.simulation_metadata.get('runtime_seconds', 200)
+        confidence = self.simulation_metadata.get('confidence_level', 0.95)
+        
+        # Format runtime nicely
+        if runtime > 3600:
+            runtime_str = f"{runtime/3600:.1f} hours"
+        elif runtime > 60:
+            runtime_str = f"{runtime/60:.1f} minutes"
+        else:
+            runtime_str = f"{runtime:.1f} seconds"
+        
         metadata_data = [
-            ['Assessment Type', 'Monte Carlo Simulation'],
-            ['Target Network', 'Solana Blockchain'],
-            ['Date Prepared', datetime.now().strftime('%B %d, %Y')],
-            ['Confidence Level', '95%'],
-            ['Time Horizon', '2025-2050']
+            ['Simulation Type', 'Monte Carlo Risk Analysis'],
+            ['Total Iterations', f'{total_iterations:,}'],
+            ['Successful Runs', f'{successful:,} ({successful/total_iterations*100:.1f}%)' if total_iterations > 0 else 'N/A'],
+            ['Confidence Level', f'{confidence*100:.0f}%'],
+            ['Analysis Period', '2025-2050'],
+            ['Runtime', runtime_str],
+            ['Date Generated', datetime.now().strftime('%B %d, %Y')]
         ]
         
         # Convert to paragraph objects for better control
@@ -583,7 +612,7 @@ class PDFReportGenerator:
         self.current_section[0] += 1
         section_num = f"{self.current_section[0]}."
         
-        title_text = f"{section_num} EXECUTIVE SUMMARY"
+        title_text = f"{section_num} SIMULATION RESULTS OVERVIEW"
         title = Paragraph(title_text, self.styles['ProfessionalHeading1'])
         
         # Keep title with first content

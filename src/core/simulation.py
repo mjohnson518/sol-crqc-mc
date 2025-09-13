@@ -669,9 +669,22 @@ class MonteCarloSimulation:
             'config': self.config._to_serializable_dict()
         }
         
-        # Add raw results if not too large
-        if len(results) <= 10000:  # Only include raw results for smaller simulations
+        # Extract only essential metrics for analysis (not full raw results)
+        # This dramatically reduces file size while preserving necessary data
+        if len(results) <= 100:  # Only include full raw results for very small simulations
             aggregated['raw_results'] = [r.to_dict() for r in results]
+        else:
+            # For larger simulations, only save essential metrics
+            aggregated['essential_metrics'] = {
+                'first_attack_years': [r.first_attack_year for r in results if r.first_attack_year],
+                'economic_losses': [r.economic_impact.get('total_loss', 0) for r in results],
+                'attack_success_rates': [r.attack_results.get('success_rate', 0) for r in results],
+                'quantum_capabilities': [r.quantum_timeline.get('2030', {}).get('logical_qubits', 0) for r in results],
+                'network_compromised_pct': [r.network_state.get('compromised_percentage', 0) for r in results],
+                'validators_migrated': [r.network_state.get('migrated_validators', 0) for r in results],
+                'recovery_times': [r.economic_impact.get('recovery_time_years', 0) for r in results],
+                'iteration_ids': [r.iteration_id for r in results]
+            }
         
         return aggregated
     

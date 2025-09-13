@@ -166,7 +166,16 @@ def analyze_results(results: dict, output_dir: Path) -> dict:
     
     # Extract raw data arrays from results if available
     raw_data = {}
-    if 'raw_results' in results and results['raw_results']:
+    
+    # Check for new essential_metrics format first (for larger simulations)
+    if 'essential_metrics' in results and results['essential_metrics']:
+        raw_data = {
+            'crqc_years': results['essential_metrics'].get('first_attack_years', []),
+            'economic_losses': results['essential_metrics'].get('economic_losses', []),
+            'attack_success_rates': results['essential_metrics'].get('attack_success_rates', [])
+        }
+    # Fall back to old raw_results format for small simulations
+    elif 'raw_results' in results and results['raw_results']:
         # Extract arrays from raw results
         raw_data['crqc_years'] = []
         raw_data['economic_losses'] = []
@@ -334,10 +343,19 @@ def generate_reports(results: dict, analysis: dict, output_dir: Path):
     with open(json_path, 'w') as f:
         json.dump(json_summary, f, indent=2)
     
-    # Generate PDF report
+    # Generate PDF report with actual simulation metadata
     print("  Creating PDF report...")
     try:
-        pdf_generator = PDFReportGenerator(reports_dir)
+        # Extract simulation metadata for PDF generation
+        simulation_metadata = {
+            'n_iterations': results.get('summary', {}).get('n_iterations', 0) or results.get('n_iterations', 0),
+            'successful_iterations': results.get('summary', {}).get('successful_iterations', 0) or results.get('successful_iterations', 0),
+            'failed_iterations': results.get('summary', {}).get('failed_iterations', 0) or results.get('failed_iterations', 0),
+            'runtime_seconds': results.get('summary', {}).get('runtime_seconds', 0) or results.get('runtime_seconds', 0),
+            'confidence_level': 0.95  # Standard confidence level
+        }
+        
+        pdf_generator = PDFReportGenerator(reports_dir, simulation_metadata)
         
         # Check if markdown report exists
         md_report_path = reports_dir / "simulation_report.md"
@@ -447,7 +465,7 @@ def main():
         n_iterations=n_iterations,
         n_cores=args.cores or os.cpu_count(),
         random_seed=args.seed,
-        save_raw_results=True,
+        save_raw_results=False,  # Disabled to reduce file size
         start_year=2025,
         end_year=2050
     )
