@@ -389,10 +389,19 @@ class ReportGenerator:
         analysis = []
         analysis.append("## 💸 Detailed Economic Impact Analysis")
         analysis.append("")
+        analysis.append("This section provides a comprehensive examination of the economic implications of quantum threats "
+                       "to the Solana ecosystem. Our analysis considers direct financial losses, systemic market effects, "
+                       "and the broader implications for decentralized finance infrastructure built on Solana.")
+        analysis.append("")
         
         metrics = self._extract_metrics(results)
         
         analysis.append("### Loss Distribution Analysis")
+        analysis.append("")
+        analysis.append("The distribution of potential economic losses follows a heavy-tailed pattern, indicating that while "
+                       "most scenarios result in moderate losses, extreme events carry catastrophic potential. This "
+                       "distribution reflects the complex interplay between attack success probability, market conditions "
+                       "at the time of attack, and the cascading effects through interconnected DeFi protocols.")
         analysis.append("")
         
         if 'economic_loss_usd' in metrics:
@@ -448,10 +457,19 @@ class ReportGenerator:
         timeline = []
         timeline.append("## ⚛️ Quantum Computing Development Timeline")
         timeline.append("")
+        timeline.append("The trajectory of quantum computing development directly determines the urgency of blockchain "
+                       "security upgrades. This timeline synthesizes projections from leading quantum computing companies, "
+                       "academic research institutions, and government quantum initiatives. The progression from current "
+                       "noisy intermediate-scale quantum (NISQ) devices to fault-tolerant quantum computers capable of "
+                       "breaking Ed25519 represents a fundamental shift in cryptographic security assumptions.")
+        timeline.append("")
         
         metrics = self._extract_metrics(results)
         
         timeline.append("### CRQC Capability Projections")
+        timeline.append("")
+        timeline.append("The following table presents consensus projections for quantum computing capabilities over the next "
+                       "decade, incorporating both optimistic breakthrough scenarios and conservative engineering timelines:")
         timeline.append("")
         timeline.append("| Year | Logical Qubits | Gate Fidelity | Ed25519 Break Time | Threat Level |")
         timeline.append("|------|---------------|---------------|-------------------|--------------|")
