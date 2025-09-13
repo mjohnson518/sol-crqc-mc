@@ -108,6 +108,10 @@ def run_simulation(config: SimulationParameters, output_dir: Path) -> dict:
     results = sim.run()
     runtime = time.time() - start_time
     
+    # Add runtime and iteration counts to results
+    results['runtime_seconds'] = runtime
+    results['total_iterations'] = config.n_iterations
+    
     print(f"\n✓ Simulation completed in {runtime:.1f} seconds")
     print(f"  Average time per iteration: {runtime/config.n_iterations:.3f} seconds")
     
@@ -329,14 +333,16 @@ def generate_reports(results: dict, analysis: dict, output_dir: Path):
     
     # Generate JSON summary
     print("  Creating JSON summary...")
+    # Get metadata from simulation results
+    metadata = results.get('metadata', {})
     json_summary = {
         'configuration': convert_to_serializable(config),
         'analysis': convert_to_serializable(analysis),
         'summary': {
-            'total_iterations': results.get('n_iterations', 0),
-            'successful_iterations': results.get('successful_iterations', 0),
-            'failed_iterations': results.get('failed_iterations', 0),
-            'runtime_seconds': results.get('runtime', 0)
+            'total_iterations': results.get('total_iterations', metadata.get('total_iterations', 0)),
+            'successful_iterations': metadata.get('successful_iterations', 0),
+            'failed_iterations': metadata.get('failed_iterations', 0),
+            'runtime_seconds': results.get('runtime_seconds', metadata.get('runtime_seconds', 0))
         }
     }
     json_path = reports_dir / "simulation_summary.json"
@@ -347,11 +353,13 @@ def generate_reports(results: dict, analysis: dict, output_dir: Path):
     print("  Creating PDF report...")
     try:
         # Extract simulation metadata for PDF generation
+        # Check metadata first (where simulation.py stores it), then fallback to summary
+        metadata = results.get('metadata', {})
         simulation_metadata = {
-            'n_iterations': results.get('summary', {}).get('n_iterations', 0) or results.get('n_iterations', 0),
-            'successful_iterations': results.get('summary', {}).get('successful_iterations', 0) or results.get('successful_iterations', 0),
-            'failed_iterations': results.get('summary', {}).get('failed_iterations', 0) or results.get('failed_iterations', 0),
-            'runtime_seconds': results.get('summary', {}).get('runtime_seconds', 0) or results.get('runtime_seconds', 0),
+            'n_iterations': results.get('total_iterations', metadata.get('total_iterations', 0)),
+            'successful_iterations': metadata.get('successful_iterations', results.get('summary', {}).get('successful_iterations', 0)),
+            'failed_iterations': metadata.get('failed_iterations', results.get('summary', {}).get('failed_iterations', 0)),
+            'runtime_seconds': results.get('runtime_seconds', metadata.get('runtime_seconds', 0)),
             'confidence_level': 0.95  # Standard confidence level
         }
         
