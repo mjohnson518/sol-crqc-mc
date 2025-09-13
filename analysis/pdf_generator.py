@@ -61,15 +61,15 @@ QUANTUM_COLORS = {
     'gradient_end': HexColor('#5A6B7B'),
 }
 
-# Professional spacing constants
+# Professional spacing constants - properly calibrated
 SPACING = {
-    'after_heading_1': 0.08 * inch,
-    'after_heading_2': 0.06 * inch,
-    'after_heading_3': 0.04 * inch,
-    'after_paragraph': 0.03 * inch,
-    'between_list_items': 0.02 * inch,
-    'before_section': 0.10 * inch,
-    'after_section': 0.08 * inch,
+    'after_heading_1': 0.15 * inch,
+    'after_heading_2': 0.12 * inch,
+    'after_heading_3': 0.10 * inch,
+    'after_paragraph': 0.08 * inch,
+    'between_list_items': 0.06 * inch,
+    'before_section': 0.20 * inch,
+    'after_section': 0.15 * inch,
 }
 
 # Professional indentation
@@ -197,8 +197,8 @@ class PDFReportGenerator:
             fontSize=TYPOGRAPHY['heading1'][1],
             fontName=TYPOGRAPHY['heading1'][0],
             textColor=QUANTUM_COLORS['primary'],
-            spaceAfter=SPACING['after_heading_1'],
-            spaceBefore=SPACING['before_section'],
+            spaceAfter=12,
+            spaceBefore=18,
             leftIndent=INDENTATION['first_level'],
             leading=20
         ))
@@ -210,8 +210,8 @@ class PDFReportGenerator:
             fontSize=TYPOGRAPHY['heading2'][1],
             fontName=TYPOGRAPHY['heading2'][0],
             textColor=QUANTUM_COLORS['dark'],
-            spaceAfter=SPACING['after_heading_2'],
-            spaceBefore=SPACING['after_heading_1'],
+            spaceAfter=10,
+            spaceBefore=12,
             leftIndent=INDENTATION['first_level'],
             leading=16
         ))
@@ -223,8 +223,8 @@ class PDFReportGenerator:
             fontSize=TYPOGRAPHY['heading3'][1],
             fontName=TYPOGRAPHY['heading3'][0],
             textColor=QUANTUM_COLORS['dark'],
-            spaceAfter=SPACING['after_heading_3'],
-            spaceBefore=SPACING['after_heading_2'],
+            spaceAfter=8,
+            spaceBefore=10,
             leftIndent=INDENTATION['first_level'],
             leading=14
         ))
@@ -237,25 +237,24 @@ class PDFReportGenerator:
             fontName=TYPOGRAPHY['body'][0],
             textColor=QUANTUM_COLORS['text'],
             alignment=TA_JUSTIFY,
-            spaceAfter=SPACING['after_paragraph'],
+            spaceAfter=6,
             leftIndent=INDENTATION['first_level'],
             rightIndent=0,
-            leading=12
+            leading=13
         ))
         
-        # Executive summary - Distinguished style
+        # Executive summary - Clean and readable
         styles.add(ParagraphStyle(
             name='ExecutiveSummary',
             parent=styles['BodyText'],
             fontSize=10,
             fontName='Helvetica',
-            textColor=QUANTUM_COLORS['dark'],
+            textColor=QUANTUM_COLORS['text'],
             alignment=TA_JUSTIFY,
             spaceAfter=SPACING['after_paragraph'],
             leftIndent=INDENTATION['first_level'],
             rightIndent=0,
-            leading=13,
-            backColor=HexColor('#FAFBFC')
+            leading=14
         ))
         
         # Code block - Clean monospace
@@ -533,20 +532,25 @@ class PDFReportGenerator:
                 clean_title = self._clean_markdown_text(section['title'])
                 
                 if section['level'] == 1:
-                    # Main sections with right-pointing triangle
-                    title_text = f"<font color='{QUANTUM_COLORS['primary'].hexval()}'>▶</font>  <b>{clean_title}</b>"
+                    # Main sections - bold with section number
+                    self.current_section[0] += 1
+                    title_text = f"<b>{self.current_section[0]}. {clean_title}</b>"
                     title_para = Paragraph(title_text, self.styles['TOCLevel1'])
                 else:
-                    # Subsections with em dash
-                    title_text = f"<font color='{QUANTUM_COLORS['secondary'].hexval()}'>—</font>  {clean_title}"
+                    # Subsections - indented with subsection number
+                    self.current_section[1] += 1
+                    title_text = f"{self.current_section[0]}.{self.current_section[1]} {clean_title}"
                     title_para = Paragraph(title_text, self.styles['TOCLevel2'])
                 
                 # Page number
                 page_para = Paragraph(str(page_num), self.styles['ProfessionalBody'])
                 
-                # Add dotted line between title and page number
+                # Add with dotted leader line effect
                 toc_data.append([title_para, page_para])
                 page_num += 1
+        
+        # Reset section numbering for main content
+        self.current_section = [0, 0, 0]
         
         # Create table with proper formatting
         toc_table = Table(toc_data, colWidths=[5.5*inch, 0.5*inch])
@@ -699,8 +703,8 @@ class PDFReportGenerator:
         for line in lines:
             # Check for numbered list
             numbered_match = re.match(r'^\s*(\d+)\.\s+(.+)', line)
-            # Check for bullet list
-            bullet_match = re.match(r'^\s*[-*+•◦▪]\s+(.+)', line)
+            # Check for bullet list (simple patterns only)
+            bullet_match = re.match(r'^\s*[-*+]\s+(.+)', line)
             
             if numbered_match:
                 number = numbered_match.group(1)
@@ -712,28 +716,38 @@ class PDFReportGenerator:
             elif bullet_match:
                 text = self._clean_markdown_text(bullet_match.group(1))
                 
-                # Determine bullet level
+                # Determine bullet level and use simple formatting
                 if line.startswith('    ') or line.startswith('\t\t'):
-                    # Third level - small square
-                    bullet_char = '▪'
+                    # Third level - simple dash
                     indent = INDENTATION['third_level']
+                    para_style = ParagraphStyle(
+                        'BulletItem3',
+                        parent=self.styles['ProfessionalBody'],
+                        leftIndent=indent + 15,
+                        firstLineIndent=-15
+                    )
+                    item_text = f"<font size='10'>-</font> {text}"
                 elif line.startswith('  ') or line.startswith('\t'):
-                    # Second level - hollow circle
-                    bullet_char = '◦'
+                    # Second level - simple circle using unicode
                     indent = INDENTATION['second_level']
+                    para_style = ParagraphStyle(
+                        'BulletItem2',
+                        parent=self.styles['ProfessionalBody'],
+                        leftIndent=indent + 15,
+                        firstLineIndent=-15
+                    )
+                    item_text = f"<font name='Symbol'>&#176;</font> {text}"
                 else:
-                    # First level - standard bullet
-                    bullet_char = '•'
+                    # First level - standard bullet using Symbol font
                     indent = INDENTATION['first_level']
+                    para_style = ParagraphStyle(
+                        'BulletItem1',
+                        parent=self.styles['ProfessionalBody'],
+                        leftIndent=indent + 15,
+                        firstLineIndent=-15
+                    )
+                    item_text = f"<font name='Symbol'>&#183;</font> {text}"
                 
-                para_style = ParagraphStyle(
-                    'BulletItem',
-                    parent=self.styles['ProfessionalBody'],
-                    leftIndent=indent + 12,
-                    firstLineIndent=-12
-                )
-                
-                item_text = f"{bullet_char}  {text}"
                 current_list.append(Paragraph(item_text, para_style))
                 list_type = 'bullet'
                 
