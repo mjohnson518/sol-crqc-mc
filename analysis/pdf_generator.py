@@ -102,6 +102,22 @@ TYPOGRAPHY = {
 }
 
 
+class PageTracker(Flowable):
+    """Invisible flowable that tracks current page number for sections."""
+    
+    def __init__(self, section_key: str, generator: 'PDFReportGenerator'):
+        Flowable.__init__(self)
+        self.section_key = section_key
+        self.generator = generator
+        self.width = 0
+        self.height = 0
+    
+    def draw(self):
+        # Record the current page number when this flowable is drawn
+        current_page = self.canv.getPageNumber()
+        self.generator.section_page_map[self.section_key] = current_page
+
+
 class ProfessionalCanvas(canvas.Canvas):
     """Professional canvas with consistent headers, footers, and page numbers."""
     
@@ -184,6 +200,8 @@ class PDFReportGenerator:
         self.story = []
         self.section_numbers = {}
         self.current_section = [0, 0, 0]  # For section numbering
+        self.section_page_map = {}  # Track actual page numbers for each section
+        self.page_flowables_map = {}  # Track flowables per page
         
         # Store simulation metadata with defaults
         self.simulation_metadata = simulation_metadata or {
@@ -644,6 +662,86 @@ class PDFReportGenerator:
                     d.add(line)
         
         self.story.append(d)
+    
+    def _add_placeholder_toc(self):
+        """Add placeholder TOC for first pass (just takes up space)."""
+        self.story.append(Paragraph("TABLE OF CONTENTS", self.styles['ProfessionalHeading1']))
+        self.story.append(Spacer(1, 2*inch))  # Reserve space
+        self.story.append(PageBreak())
+    
+    def _add_table_of_contents_with_accurate_pages(self, sections: List[Dict[str, Any]]):
+        """Add TOC with accurate page numbers from first pass."""
+        # Title
+        toc_title = Paragraph("TABLE OF CONTENTS", self.styles['ProfessionalHeading1'])
+        self.story.append(toc_title)
+        
+        # Add subtle horizontal rule
+        hr = HRFlowable(
+            width="100%",
+            thickness=0.5,
+            color=QUANTUM_COLORS['light'],
+            spaceBefore=6,
+            spaceAfter=12
+        )
+        self.story.append(hr)
+        
+        # TOC entries with actual page numbers
+        toc_data = []
+        toc_section = [0, 0, 0]
+        
+        # Executive Summary
+        page_num = self.section_page_map.get("EXECUTIVE_SUMMARY", 3)
+        title_para = Paragraph("<b>EXECUTIVE SUMMARY</b>", self.styles['TOCLevel1'])
+        page_para = Paragraph(str(page_num), self.styles['ProfessionalBody'])
+        toc_data.append([title_para, page_para])
+        
+        # Simulation Parameters
+        page_num = self.section_page_map.get("SIMULATION_PARAMETERS", 4)
+        title_para = Paragraph("<b>1. SIMULATION PARAMETERS AND METHODOLOGY</b>", self.styles['TOCLevel1'])
+        page_para = Paragraph(str(page_num), self.styles['ProfessionalBody'])
+        toc_data.append([title_para, page_para])
+        
+        # Main sections
+        toc_section[0] = 1
+        for section in sections:
+            clean_title = self._clean_markdown_text(section['title'])
+            
+            # Skip executive summary
+            if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
+                continue
+            
+            # Get actual page number from map
+            section_key = f"SECTION_{clean_title}"
+            page_num = self.section_page_map.get(section_key, 0)
+            
+            if section['level'] <= 2 and page_num > 0:
+                if section['level'] == 1:
+                    toc_section[0] += 1
+                    toc_section[1] = 0
+                    title_text = f"<b>{toc_section[0]}. {clean_title.upper()}</b>"
+                    title_para = Paragraph(title_text, self.styles['TOCLevel1'])
+                else:
+                    toc_section[1] += 1
+                    title_text = f"{toc_section[0]}.{toc_section[1]} {clean_title}"
+                    title_para = Paragraph(title_text, self.styles['TOCLevel2'])
+                
+                page_para = Paragraph(str(page_num), self.styles['ProfessionalBody'])
+                toc_data.append([title_para, page_para])
+        
+        # Create table
+        toc_table = Table(toc_data, colWidths=[5.5*inch, 0.5*inch])
+        toc_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        
+        self.story.append(toc_table)
+        self.story.append(PageBreak())
     
     def _add_table_of_contents(self, sections: List[Dict[str, Any]]):
         """Add a professional table of contents."""
@@ -1661,7 +1759,7 @@ class PDFReportGenerator:
         charts_dir: Optional[Path] = None,
         output_filename: str = "quantum_risk_report.pdf"
     ) -> Path:
-        """Generate a professional PDF from a markdown report.
+        """Generate a professional PDF from a markdown report using two-pass approach.
         
         Args:
             markdown_report_path: Path to the markdown report
@@ -1678,7 +1776,55 @@ class PDFReportGenerator:
         # Parse sections
         sections = self._parse_markdown(markdown_content)
         
-        # Create PDF document with professional margins
+        # FIRST PASS: Build document to calculate actual page numbers
+        self.story = []
+        self.current_section = [0, 0, 0]
+        self.section_page_map = {}
+        
+        # Build the document structure with page trackers
+        self._add_professional_cover_page()
+        
+        # Add placeholder TOC pages (will be replaced in second pass)
+        self.story.append(PageTracker("TOC_START", self))
+        self._add_placeholder_toc()
+        self.story.append(PageTracker("TOC_END", self))
+        
+        # Add executive summary with tracker
+        self.story.append(PageTracker("EXECUTIVE_SUMMARY", self))
+        self._add_executive_summary(sections)
+        
+        # Add simulation parameters with tracker
+        self.story.append(PageTracker("SIMULATION_PARAMETERS", self))
+        self._add_simulation_parameters_section()
+        
+        # Add all main sections with trackers
+        for section in sections:
+            clean_title = self._clean_markdown_text(section['title'])
+            # Skip executive summary (already added)
+            if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
+                continue
+            section_key = f"SECTION_{clean_title}"
+            self.story.append(PageTracker(section_key, self))
+            self._add_section(section, charts_dir)
+        
+        # Add disclaimer
+        self._add_disclaimer()
+        
+        # Create temporary PDF to get page numbers
+        temp_pdf_path = self.output_dir / f"temp_{output_filename}"
+        temp_doc = SimpleDocTemplate(
+            str(temp_pdf_path),
+            pagesize=letter,
+            rightMargin=0.75*inch,
+            leftMargin=0.75*inch,
+            topMargin=0.75*inch,
+            bottomMargin=0.75*inch
+        )
+        
+        # Build temporary document
+        temp_doc.build(self.story[:], canvasmaker=ProfessionalCanvas)
+        
+        # SECOND PASS: Build final document with accurate TOC
         pdf_path = self.output_dir / output_filename
         doc = SimpleDocTemplate(
             str(pdf_path),
@@ -1693,31 +1839,30 @@ class PDFReportGenerator:
             creator="Professional PDF Generator v2.0"
         )
         
-        # Build content
+        # Rebuild story with accurate TOC
         self.story = []
         self.current_section = [0, 0, 0]
         
-        # Add cover page
         self._add_professional_cover_page()
-        
-        # Add table of contents
-        self._add_table_of_contents(sections)
-        
-        # Add executive summary
+        self._add_table_of_contents_with_accurate_pages(sections)
         self._add_executive_summary(sections)
-        
-        # Add simulation parameters section
         self._add_simulation_parameters_section()
         
-        # Add main sections
         for section in sections:
+            clean_title = self._clean_markdown_text(section['title'])
+            # Skip executive summary (already added)
+            if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
+                continue
             self._add_section(section, charts_dir)
         
-        # Add final disclaimer
         self._add_disclaimer()
         
-        # Build PDF with professional canvas
+        # Build final PDF
         doc.build(self.story, canvasmaker=ProfessionalCanvas)
+        
+        # Clean up temporary file
+        if temp_pdf_path.exists():
+            temp_pdf_path.unlink()
         
         return pdf_path
 
