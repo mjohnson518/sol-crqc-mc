@@ -691,7 +691,7 @@ class PDFReportGenerator:
     
     def _add_simulation_parameters_section(self):
         """Add comprehensive simulation parameters section."""
-        self.story.append(PageBreak())
+        # Note: PageBreak is already added at the end of executive summary
         
         # Reset section numbering and start with section 1
         self.current_section = [1, 0, 0]
