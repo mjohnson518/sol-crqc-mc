@@ -187,20 +187,22 @@ $$SE_{boot} = \sqrt{\frac{1}{B-1} \sum_{i=1}^{B} (\theta_i^* - \bar{\theta}^*)^2
 
 ## Confidence Intervals
 
+*Note: CI_{0.95} denotes the 95% confidence interval (α = 0.05)*
+
 ### Normal Approximation
 
 For large samples (n > 30):
-$$CI_{95\%} = \bar{X}_n \pm 1.96 \times SE(\bar{X}_n)$$
+$$CI_{0.95} = \bar{X}_n \pm 1.96 \times SE(\bar{X}_n)$$
 
 ### T-Distribution (Small Samples)
 
 For small samples (n ≤ 30):
-$$CI_{95\%} = \bar{X}_n \pm t_{0.975,n-1} \times SE(\bar{X}_n)$$
+$$CI_{0.95} = \bar{X}_n \pm t_{0.975,n-1} \times SE(\bar{X}_n)$$
 
 ### Bootstrap Percentile Method
 
 Using bootstrap distribution:
-$$CI_{95\%} = [P_{2.5}, P_{97.5}]$$
+$$CI_{0.95} = [P_{2.5}, P_{97.5}]$$
 
 Where $P_{\alpha}$ is the $\alpha$-th percentile of bootstrap distribution.
 
