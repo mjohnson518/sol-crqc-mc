@@ -1129,8 +1129,8 @@ class PDFReportGenerator:
                         leftIndent=indent + 15,
                         firstLineIndent=-15
                     )
-                    # Use hollow circle for second level (size 10)
-                    item_text = f"<font size='10'>○</font> {text}"
+                    # Use arrow for second level (size 10)
+                    item_text = f"<font size='10'>→</font> {text}"
                 else:
                     # First level - filled circle bullet (size 11)
                     indent = INDENTATION['first_level']
