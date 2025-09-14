@@ -1,0 +1,70 @@
+{
+  "n_iterations": 10,
+  "random_seed": 42,
+  "confidence_level": 0.95,
+  "n_cores": 10,
+  "start_year": 2025,
+  "end_year": 2050,
+  "time_step_days": 30,
+  "output_dir": "data/output",
+  "save_raw_results": false,
+  "generate_reports": true,
+  "verbose_logging": false,
+  "quantum": {
+    "logical_qubits_for_ed25519": 2330,
+    "physical_to_logical_ratio": 1000,
+    "gate_speed_hz": 1000000.0,
+    "circuit_depth": 1420000000.0,
+    "error_correction_distance": 15,
+    "success_probability": 0.9,
+    "initial_qubits": 1000,
+    "qubit_growth_rate": 1.5,
+    "breakthrough_probability_annual": 0.05,
+    "breakthrough_timeline": {
+      "2026": 0.01,
+      "2027": 0.02,
+      "2028": 0.05,
+      "2029": 0.08,
+      "2030": 0.12,
+      "2031": 0.15,
+      "2032": 0.18,
+      "2033": 0.2,
+      "2034": 0.25,
+      "2035": 0.3
+    }
+  },
+  "network": {
+    "n_validators": 1032,
+    "total_stake_sol": 400000000,
+    "stake_gini_coefficient": 0.84,
+    "geographic_distribution": {
+      "north_america": 0.4,
+      "europe": 0.3,
+      "asia": 0.2,
+      "other": 0.1
+    },
+    "consensus_thresholds": {
+      "halt": 0.333,
+      "control": 0.667
+    },
+    "validator_growth_rate": 1.05,
+    "stake_growth_rate": 1.1,
+    "key_rotation_frequency_days": 365,
+    "migration_adoption_rate": 0.8
+  },
+  "economic": {
+    "sol_price_usd": 185.0,
+    "total_value_locked_usd": 12200000000,
+    "daily_volume_usd": 2500000000,
+    "defi_protocols": {
+      "lending": 5200000000,
+      "dex": 4800000000,
+      "liquid_staking": 2200000000
+    },
+    "attack_market_impact_multiplier": 3.0,
+    "confidence_loss_factor": 0.7,
+    "recovery_time_months": 12,
+    "var_confidence_level": 0.95,
+    "cvar_confidence_level": 0.95
+  }
+}

@@ -437,12 +437,12 @@ class PDFReportGenerator:
         )
         self.story.append(title)
         
-        # Subtitle - centered with gradient-inspired color
+        # Subtitle - centered
         subtitle_style = ParagraphStyle(
             'Subtitle',
             parent=self.styles['ProfessionalHeading2'],
             fontSize=16,
-            textColor=QUANTUM_COLORS['solana_gradient_2'],
+            textColor=QUANTUM_COLORS['secondary'],
             alignment=TA_CENTER,
             spaceAfter=12
         )
@@ -569,7 +569,7 @@ class PDFReportGenerator:
         """Add a Solana-inspired gradient design element to the cover page."""
         # Calculate drawing width to match page width minus margins (6.5 inches = 468 points)
         page_width = 6.5 * inch
-        d = Drawing(page_width, 150)
+        d = Drawing(page_width, 120)
         
         # Create Solana-inspired gradient effect with progressive darkening
         # from bottom left to top right
@@ -577,18 +577,24 @@ class PDFReportGenerator:
         from reportlab.graphics.shapes import Polygon, Rect
         from reportlab.lib.colors import Color
         
-        # Create grid of circles with Solana gradient
-        num_cols = 7
-        num_rows = 4
-        spacing_x = 55
+        # Helper function to darken colors
+        def darken_color(color, factor=0.85):
+            """Darken a color by the given factor (0.85 = 15% darker)"""
+            return Color(color.red * factor, color.green * factor, color.blue * factor)
+        
+        # Create grid of circles with Solana gradient - reduced and uniform
+        num_cols = 6
+        num_rows = 3
+        spacing_x = 70
         spacing_y = 35
+        radius = 12  # Uniform radius for all circles
         
         # Calculate starting position to center the pattern
         pattern_width = (num_cols - 1) * spacing_x
         start_x = (page_width - pattern_width) / 2
         
-        # Solana gradient colors for progression
-        gradient_colors = [
+        # Solana gradient colors for progression - made 15% darker
+        original_colors = [
             HexColor('#14F195'),  # Bright teal (bottom left)
             HexColor('#00D4FF'),  # Cyan
             HexColor('#8C52FF'),  # Light purple
@@ -598,10 +604,13 @@ class PDFReportGenerator:
             HexColor('#3C0F9F'),  # Dark purple (top right)
         ]
         
+        # Make colors 15% darker
+        gradient_colors = [darken_color(color, 0.85) for color in original_colors]
+        
         for i in range(num_rows):
             for j in range(num_cols):
                 x = start_x + j * spacing_x
-                y = 20 + i * spacing_y
+                y = 25 + i * spacing_y
                 
                 # Calculate gradient index based on diagonal position
                 # Bottom left (0,0) is lightest, top right is darkest
@@ -609,54 +618,29 @@ class PDFReportGenerator:
                 color_index = int(gradient_progress * (len(gradient_colors) - 1))
                 color_index = min(color_index, len(gradient_colors) - 1)
                 
-                # Create circles with varying sizes and gradient colors
-                radius = 10 + (gradient_progress * 5)  # Size increases diagonally
+                # Create circles with uniform size but gradient colors
                 circle = Circle(x, y, radius)
                 circle.fillColor = gradient_colors[color_index]
-                circle.fillOpacity = 0.3 + (gradient_progress * 0.4)  # Opacity increases diagonally
+                circle.fillOpacity = 0.4
                 circle.strokeColor = gradient_colors[min(color_index + 1, len(gradient_colors) - 1)]
                 circle.strokeWidth = 0.5
-                circle.strokeOpacity = 0.5
+                circle.strokeOpacity = 0.3
                 d.add(circle)
                 
-                # Add connecting lines with gradient effect
+                # Add subtle connecting lines
                 if j < num_cols - 1:
                     line = Line(x + radius, y, x + spacing_x - radius, y)
                     line.strokeColor = gradient_colors[color_index]
                     line.strokeWidth = 0.5
-                    line.strokeOpacity = 0.3
+                    line.strokeOpacity = 0.2
                     d.add(line)
                 
                 if i < num_rows - 1:
                     line = Line(x, y + radius, x, y + spacing_y - radius)
                     line.strokeColor = gradient_colors[color_index]
                     line.strokeWidth = 0.5
-                    line.strokeOpacity = 0.3
+                    line.strokeOpacity = 0.2
                     d.add(line)
-                
-                # Add diagonal connections for more dynamic feel
-                if j < num_cols - 1 and i < num_rows - 1:
-                    diagonal = Line(x + radius/1.4, y + radius/1.4, 
-                                  x + spacing_x - radius/1.4, y + spacing_y - radius/1.4)
-                    diagonal.strokeColor = gradient_colors[color_index]
-                    diagonal.strokeWidth = 0.3
-                    diagonal.strokeOpacity = 0.2
-                    d.add(diagonal)
-        
-        # Add subtle Solana-inspired accent elements
-        # Top right accent
-        accent = Circle(start_x + pattern_width + 30, 100, 15)
-        accent.fillColor = QUANTUM_COLORS['solana_purple']
-        accent.fillOpacity = 0.15
-        accent.strokeColor = None
-        d.add(accent)
-        
-        # Bottom left accent
-        accent2 = Circle(start_x - 30, 30, 12)
-        accent2.fillColor = QUANTUM_COLORS['solana_teal']
-        accent2.fillOpacity = 0.15
-        accent2.strokeColor = None
-        d.add(accent2)
         
         self.story.append(d)
     
@@ -681,25 +665,33 @@ class PDFReportGenerator:
         
         # TOC entries
         toc_data = []
-        page_num = 3  # Starting page after cover and TOC
         
         # Track section numbering separately for TOC
         toc_section = [0, 0, 0]
+        
+        # Page numbering accounting for actual pagination:
+        # Page 1: Cover
+        # Page 2: Table of Contents
+        # Page 3: Executive Summary (always starts here)
+        page_num = 3
         
         # Add Executive Summary as first unnumbered entry
         title_text = f"<b>EXECUTIVE SUMMARY</b>"
         title_para = Paragraph(title_text, self.styles['TOCLevel1'])
         page_para = Paragraph(str(page_num), self.styles['ProfessionalBody'])
         toc_data.append([title_para, page_para])
-        page_num += 1
         
-        # Add simulation parameters section to TOC (it's always section 1)
+        # Simulation Parameters starts on page 4 (Executive Summary is 1 page)
+        page_num = 4
         toc_section[0] = 1
         title_text = f"<b>1. SIMULATION PARAMETERS AND METHODOLOGY</b>"
         title_para = Paragraph(title_text, self.styles['TOCLevel1'])
         page_para = Paragraph(str(page_num), self.styles['ProfessionalBody'])
         toc_data.append([title_para, page_para])
-        page_num += 1
+        
+        # Track if we're in a level 1 section that gets a page break
+        current_page = 4  # We're on page 4 after Simulation Parameters
+        level1_count = 1  # We've already added section 1
         
         for section in sections:
             # Skip executive summary in TOC (it's added separately above)
@@ -709,25 +701,38 @@ class PDFReportGenerator:
             
             if section['level'] <= 2:
                 if section['level'] == 1:
-                    # Main sections - bold with section number
+                    # Main sections always get a new page
+                    level1_count += 1
+                    current_page = 4 + level1_count  # Each level 1 section adds a page
+                    
+                    # Account for content before this section
+                    # Rough estimate: add pages for previous sections' content
+                    if level1_count == 2:  # Section 2 (Results and Analysis)
+                        current_page = 5
+                    elif level1_count == 3:  # Section 3 (Technical Specifications)
+                        current_page = 20  # After all the results content
+                    
                     toc_section[0] += 1
                     toc_section[1] = 0
-                    # Clean title to remove any emojis or special characters
                     title_text = f"<b>{toc_section[0]}. {clean_title.upper()}</b>"
                     title_para = Paragraph(title_text, self.styles['TOCLevel1'])
+                    page_para = Paragraph(str(current_page), self.styles['ProfessionalBody'])
                 else:
-                    # Subsections - indented with subsection number
+                    # Subsections - check for special cases that get page breaks
                     toc_section[1] += 1
-                    # Clean title to remove any emojis or special characters
+                    
+                    # Special subsections that get page breaks
+                    if 'quantum' in clean_title.lower() and 'timeline' in clean_title.lower():
+                        current_page += 2  # This section gets a page break
+                    elif 'key variables' in clean_title.lower():
+                        current_page += 1  # This section gets a page break
+                    
                     title_text = f"{toc_section[0]}.{toc_section[1]} {clean_title}"
                     title_para = Paragraph(title_text, self.styles['TOCLevel2'])
-                
-                # Page number
-                page_para = Paragraph(str(page_num), self.styles['ProfessionalBody'])
+                    page_para = Paragraph(str(current_page), self.styles['ProfessionalBody'])
                 
                 # Add with dotted leader line effect
                 toc_data.append([title_para, page_para])
-                page_num += 1
         
         # Don't reset section numbering here - we'll set it correctly when adding sections
         
