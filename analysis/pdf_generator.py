@@ -1370,12 +1370,69 @@ class PDFReportGenerator:
             # For subsections, just add the title normally
             self.story.extend(title_group)
         
-        # Process all content normally
-        self._process_content_professionally(content_text, preserve_links=preserve_links)
+        # Check if this is the References section for special two-column formatting
+        if 'reference' in clean_title.lower() and section['level'] == 3:
+            self._process_references_two_column(content_text)
+        else:
+            # Process all other content normally
+            self._process_content_professionally(content_text, preserve_links=preserve_links)
         
         # Add related charts if available
         if charts_dir and section['title']:
             self._add_section_charts(section['title'], charts_dir)
+    
+    def _process_references_two_column(self, content: str):
+        """Process references section in two-column format."""
+        lines = content.split('\n')
+        references = []
+        
+        # Extract numbered references
+        for line in lines:
+            line = line.strip()
+            if line and re.match(r'^\d+\.', line):
+                # Clean the reference text
+                clean_ref = self._clean_markdown_text(line, preserve_links=True)
+                references.append(clean_ref)
+        
+        if not references:
+            # No references found, process normally
+            self._process_content_professionally(content, preserve_links=True)
+            return
+        
+        # Split references into two columns
+        mid_point = (len(references) + 1) // 2
+        left_column = references[:mid_point]
+        right_column = references[mid_point:]
+        
+        # Create table data with two columns
+        table_data = []
+        for i in range(mid_point):
+            left_ref = Paragraph(left_column[i], self.styles['ProfessionalBody']) if i < len(left_column) else ''
+            right_ref = Paragraph(right_column[i], self.styles['ProfessionalBody']) if i < len(right_column) else ''
+            table_data.append([left_ref, right_ref])
+        
+        # Create the two-column table
+        col_width = 3.1*inch  # Slightly less than half page width to account for margins
+        ref_table = Table(table_data, colWidths=[col_width, col_width])
+        
+        # Apply professional styling
+        ref_table.setStyle(TableStyle([
+            # Remove all borders
+            ('BOX', (0, 0), (-1, -1), 0, colors.white),
+            ('INNERGRID', (0, 0), (-1, -1), 0, colors.white),
+            # Alignment
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            # Padding
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (0, -1), 12),  # Space between columns
+            ('RIGHTPADDING', (1, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        
+        self.story.append(ref_table)
+        self.story.append(Spacer(1, SPACING['after_paragraph']))
     
     def _add_section_charts(self, section_title: str, charts_dir: Path):
         """Add relevant charts for a section."""
