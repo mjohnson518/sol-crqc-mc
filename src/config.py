@@ -56,9 +56,9 @@ class NetworkParameters:
     """Parameters describing the Solana network state and characteristics."""
     
     # Validator network
-    n_validators: int = 1032  # Current number of validators (Solana Beach Jan 2025)
-    total_stake_sol: float = 400_000_000  # Total staked SOL
-    stake_gini_coefficient: float = 0.84  # Stake concentration metric
+    n_validators: int = 1950  # Current number of validators (Solana Beach Dec 2024)
+    total_stake_sol: float = 380_000_000  # Total staked SOL
+    stake_gini_coefficient: float = 0.82  # Stake concentration metric
     
     # Geographic distribution
     geographic_distribution: Dict[str, float] = field(default_factory=lambda: {
@@ -87,16 +87,16 @@ class NetworkParameters:
 class EconomicParameters:
     """Economic and financial parameters for impact calculation."""
     
-    # Current market values
-    sol_price_usd: float = 185.0
-    total_value_locked_usd: float = 12_200_000_000  # $12.2B TVL
-    daily_volume_usd: float = 2_500_000_000  # $2.5B daily volume
+    # Current market values (Updated Dec 2024)
+    sol_price_usd: float = 235.0
+    total_value_locked_usd: float = 8_500_000_000  # $8.5B TVL
+    daily_volume_usd: float = 3_800_000_000  # $3.8B daily volume
     
     # DeFi ecosystem breakdown
     defi_protocols: Dict[str, float] = field(default_factory=lambda: {
-        'lending': 5_200_000_000,  # $5.2B
-        'dex': 4_800_000_000,  # $4.8B
-        'liquid_staking': 2_200_000_000  # $2.2B
+        'lending': 3_200_000_000,  # $3.2B (Marginfi, Kamino, etc.)
+        'dex': 3_500_000_000,  # $3.5B (Jupiter, Raydium, Orca)
+        'liquid_staking': 1_800_000_000  # $1.8B (Marinade, Jito)
     })
     
     # Market impact parameters

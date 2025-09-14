@@ -733,12 +733,12 @@ class MonteCarloSimulation:
             # For larger simulations, only save essential metrics
             aggregated['essential_metrics'] = {
                 'first_attack_years': [r.first_attack_year for r in results if r.first_attack_year],
-                'economic_losses': [r.economic_impact.get('total_loss', 0) for r in results],
+                'economic_losses': [r.economic_impact.get('total_loss_usd', 0) for r in results],
                 'attack_success_rates': [r.attack_results.get('success_rate', 0) for r in results],
                 'quantum_capabilities': [r.quantum_timeline.get('2030', {}).get('logical_qubits', 0) for r in results],
                 'network_compromised_pct': [r.network_state.get('compromised_percentage', 0) for r in results],
                 'validators_migrated': [r.network_state.get('migrated_validators', 0) for r in results],
-                'recovery_times': [r.economic_impact.get('recovery_time_years', 0) for r in results],
+                'recovery_times': [r.economic_impact.get('recovery_time_months', 0) for r in results],
                 'iteration_ids': [r.iteration_id for r in results]
             }
         
@@ -815,11 +815,11 @@ class MonteCarloSimulation:
             metrics['first_attack_year'] = result.first_attack_year
         
         # Economic impact metrics
-        if 'total_loss' in result.economic_impact:
-            metrics['total_economic_loss'] = result.economic_impact['total_loss']
+        if 'total_loss_usd' in result.economic_impact:
+            metrics['total_economic_loss'] = result.economic_impact['total_loss_usd']
         
-        if 'peak_loss' in result.economic_impact:
-            metrics['peak_economic_loss'] = result.economic_impact['peak_loss']
+        if 'direct_loss_usd' in result.economic_impact:
+            metrics['direct_economic_loss'] = result.economic_impact['direct_loss_usd']
         
         # Attack probability
         if 'successful_attacks' in result.attack_results:
