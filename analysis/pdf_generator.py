@@ -46,7 +46,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 
-# Professional color palette - sophisticated and subtle
+# Professional color palette - Solana-inspired with gradients
 QUANTUM_COLORS = {
     'primary': HexColor('#003366'),      # Professional navy
     'secondary': HexColor('#5A6B7B'),    # Sophisticated gray-blue
@@ -60,6 +60,14 @@ QUANTUM_COLORS = {
     'text': HexColor('#212529'),         # Near black
     'gradient_start': HexColor('#003366'),
     'gradient_end': HexColor('#5A6B7B'),
+    # Solana-inspired gradient colors
+    'solana_purple': HexColor('#9945FF'),    # Solana signature purple
+    'solana_teal': HexColor('#14F195'),      # Solana bright teal
+    'solana_blue': HexColor('#4E44CE'),      # Deep blue
+    'solana_cyan': HexColor('#00D4FF'),      # Cyan accent
+    'solana_gradient_1': HexColor('#8C52FF'), # Light purple
+    'solana_gradient_2': HexColor('#5E17EB'), # Medium purple
+    'solana_gradient_3': HexColor('#3C0F9F'), # Dark purple
 }
 
 # Professional spacing constants - properly calibrated
@@ -415,13 +423,13 @@ class PDFReportGenerator:
         # Add some initial spacing
         self.story.append(Spacer(1, 1.5*inch))
         
-        # Main title - centered
+        # Main title - centered with Solana-inspired colors
         title_style = ParagraphStyle(
             'CoverTitle',
             parent=self.styles['ProfessionalTitle'],
             alignment=TA_CENTER,
-            fontSize=24,
-            textColor=QUANTUM_COLORS['primary']
+            fontSize=26,
+            textColor=QUANTUM_COLORS['solana_blue']
         )
         title = Paragraph(
             "<b>APPENDIX 2</b>",
@@ -429,12 +437,12 @@ class PDFReportGenerator:
         )
         self.story.append(title)
         
-        # Subtitle - centered
+        # Subtitle - centered with gradient-inspired color
         subtitle_style = ParagraphStyle(
             'Subtitle',
             parent=self.styles['ProfessionalHeading2'],
             fontSize=16,
-            textColor=QUANTUM_COLORS['secondary'],
+            textColor=QUANTUM_COLORS['solana_gradient_2'],
             alignment=TA_CENTER,
             spaceAfter=12
         )
@@ -558,48 +566,97 @@ class PDFReportGenerator:
         self.story.append(PageBreak())
     
     def _add_professional_design_element(self):
-        """Add a sophisticated geometric design element to the cover page."""
+        """Add a Solana-inspired gradient design element to the cover page."""
         # Calculate drawing width to match page width minus margins (6.5 inches = 468 points)
         page_width = 6.5 * inch
-        d = Drawing(page_width, 120)
+        d = Drawing(page_width, 150)
         
-        # Create gradient-like effect with overlapping shapes
-        # Professional geometric pattern
+        # Create Solana-inspired gradient effect with progressive darkening
+        # from bottom left to top right
         
-        # Central hexagon pattern
-        from reportlab.graphics.shapes import Polygon
+        from reportlab.graphics.shapes import Polygon, Rect
+        from reportlab.lib.colors import Color
         
-        # Create subtle geometric shapes - center the pattern
-        num_cols = 5
-        num_rows = 3
-        spacing_x = 60
-        spacing_y = 30
+        # Create grid of circles with Solana gradient
+        num_cols = 7
+        num_rows = 4
+        spacing_x = 55
+        spacing_y = 35
         
         # Calculate starting position to center the pattern
         pattern_width = (num_cols - 1) * spacing_x
         start_x = (page_width - pattern_width) / 2
         
+        # Solana gradient colors for progression
+        gradient_colors = [
+            HexColor('#14F195'),  # Bright teal (bottom left)
+            HexColor('#00D4FF'),  # Cyan
+            HexColor('#8C52FF'),  # Light purple
+            HexColor('#9945FF'),  # Solana purple
+            HexColor('#5E17EB'),  # Medium purple
+            HexColor('#4E44CE'),  # Deep blue
+            HexColor('#3C0F9F'),  # Dark purple (top right)
+        ]
+        
         for i in range(num_rows):
             for j in range(num_cols):
                 x = start_x + j * spacing_x
-                y = 30 + i * spacing_y
+                y = 20 + i * spacing_y
                 
-                # Create small circles with varying opacity
-                circle = Circle(x, y, 8)
-                circle.fillColor = QUANTUM_COLORS['accent']
-                circle.fillOpacity = 0.1 + (i * 0.05)
-                circle.strokeColor = QUANTUM_COLORS['secondary']
+                # Calculate gradient index based on diagonal position
+                # Bottom left (0,0) is lightest, top right is darkest
+                gradient_progress = (i / (num_rows - 1) + j / (num_cols - 1)) / 2
+                color_index = int(gradient_progress * (len(gradient_colors) - 1))
+                color_index = min(color_index, len(gradient_colors) - 1)
+                
+                # Create circles with varying sizes and gradient colors
+                radius = 10 + (gradient_progress * 5)  # Size increases diagonally
+                circle = Circle(x, y, radius)
+                circle.fillColor = gradient_colors[color_index]
+                circle.fillOpacity = 0.3 + (gradient_progress * 0.4)  # Opacity increases diagonally
+                circle.strokeColor = gradient_colors[min(color_index + 1, len(gradient_colors) - 1)]
                 circle.strokeWidth = 0.5
-                circle.strokeOpacity = 0.3
+                circle.strokeOpacity = 0.5
                 d.add(circle)
                 
-                # Connect with subtle lines
+                # Add connecting lines with gradient effect
                 if j < num_cols - 1:
-                    line = Line(x + 8, y, x + spacing_x - 8, y)
-                    line.strokeColor = QUANTUM_COLORS['light']
+                    line = Line(x + radius, y, x + spacing_x - radius, y)
+                    line.strokeColor = gradient_colors[color_index]
                     line.strokeWidth = 0.5
-                    line.strokeOpacity = 0.5
+                    line.strokeOpacity = 0.3
                     d.add(line)
+                
+                if i < num_rows - 1:
+                    line = Line(x, y + radius, x, y + spacing_y - radius)
+                    line.strokeColor = gradient_colors[color_index]
+                    line.strokeWidth = 0.5
+                    line.strokeOpacity = 0.3
+                    d.add(line)
+                
+                # Add diagonal connections for more dynamic feel
+                if j < num_cols - 1 and i < num_rows - 1:
+                    diagonal = Line(x + radius/1.4, y + radius/1.4, 
+                                  x + spacing_x - radius/1.4, y + spacing_y - radius/1.4)
+                    diagonal.strokeColor = gradient_colors[color_index]
+                    diagonal.strokeWidth = 0.3
+                    diagonal.strokeOpacity = 0.2
+                    d.add(diagonal)
+        
+        # Add subtle Solana-inspired accent elements
+        # Top right accent
+        accent = Circle(start_x + pattern_width + 30, 100, 15)
+        accent.fillColor = QUANTUM_COLORS['solana_purple']
+        accent.fillOpacity = 0.15
+        accent.strokeColor = None
+        d.add(accent)
+        
+        # Bottom left accent
+        accent2 = Circle(start_x - 30, 30, 12)
+        accent2.fillColor = QUANTUM_COLORS['solana_teal']
+        accent2.fillOpacity = 0.15
+        accent2.strokeColor = None
+        d.add(accent2)
         
         self.story.append(d)
     
