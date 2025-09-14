@@ -246,7 +246,9 @@ class ReportGenerator:
             summary.append(f"- **Best-Case Scenario:** ${min_loss/1e9:.2f} Billion")
             summary.append(f"- **Worst-Case Scenario:** ${max_loss/1e9:.2f} Billion")
             summary.append(f"- **Value at Risk (95%):** ${var_loss/1e9:.2f} Billion")
+            summary.append(f"  *Maximum loss expected in 95% of scenarios - only 5% chance of exceeding this amount*")
             summary.append(f"- **Conditional VaR (95%):** ${cvar_loss/1e9:.2f} Billion")
+            summary.append(f"  *Average loss in the worst 5% of scenarios - measures tail risk severity*")
             summary.append("")
         
         # Quantum timeline summary
@@ -397,6 +399,22 @@ class ReportGenerator:
         analysis.append("")
         
         metrics = self._extract_metrics(results)
+        
+        analysis.append("### Understanding Risk Metrics: VaR and CVaR")
+        analysis.append("")
+        analysis.append("**Value at Risk (VaR)** and **Conditional Value at Risk (CVaR)** are industry-standard risk metrics used by "
+                       "financial institutions worldwide to quantify potential losses:")
+        analysis.append("")
+        analysis.append("- **Value at Risk (95%)**: The maximum loss expected in 95% of scenarios. This means there is only a 5% "
+                       "probability that losses will exceed this threshold. VaR provides a clear boundary for \"normal\" risk exposure.")
+        analysis.append("")
+        analysis.append("- **Conditional VaR (95%)**: Also known as Expected Shortfall, this measures the average loss in the worst "
+                       "5% of scenarios. CVaR captures tail risk - what happens when things go catastrophically wrong. It answers: "
+                       "\"If we breach the VaR threshold, how bad will it be on average?\"")
+        analysis.append("")
+        analysis.append("For Solana's quantum risk, the difference between VaR and CVaR indicates the severity of tail events - "
+                       "scenarios where multiple failures cascade through the ecosystem.")
+        analysis.append("")
         
         analysis.append("### Loss Distribution Analysis")
         analysis.append("")
