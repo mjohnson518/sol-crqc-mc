@@ -1,0 +1,71 @@
+{
+  "configuration": {
+    "title": "Solana Quantum Impact Monte Carlo Simulation Report",
+    "author": "Marc Johnson",
+    "include_raw_data": "False",
+    "include_charts": "True",
+    "include_recommendations": "True",
+    "decimal_places": "2",
+    "output_format": "markdown"
+  },
+  "analysis": {
+    "statistics": {
+      "economic_losses": {
+        "mean": "27486587190.17795",
+        "median": "39562930131.79297",
+        "std": "16743176143.35438",
+        "var": "2.8033394736739123e+20",
+        "min": "4706906633.989898",
+        "max": "43369537726.27766",
+        "percentiles": {
+          "1": "4747965152.629452",
+          "5": "4912199227.187669",
+          "10": "5117491820.38544",
+          "25": "6585310260.313289",
+          "50": "39562930131.79297",
+          "75": "43201285006.97891",
+          "90": "43262473771.50625",
+          "95": "43316005748.89195",
+          "99": "43358831330.800514"
+        },
+        "skewness": "-0.39840243279948917",
+        "kurtosis": "-1.6767183078215473",
+        "confidence_interval": "(14616642715.83564, 40356531664.52026)",
+        "sample_size": "9"
+      }
+    },
+    "risk_metrics": {
+      "risk_score": "59.56686954222643",
+      "risk_level": {
+        "_value_": "Moderate",
+        "_name_": "MODERATE",
+        "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x104f52710>, '__module__': 'analysis.risk_assessment', '__doc__': 'Risk level categories.', '_member_names_': ['CRITICAL', 'HIGH', 'MODERATE', 'LOW', 'MINIMAL'], '_member_map_': {'CRITICAL': <RiskLevel.CRITICAL: 'Critical'>, 'HIGH': <RiskLevel.HIGH: 'High'>, 'MODERATE': <RiskLevel.MODERATE: 'Moderate'>, 'LOW': <RiskLevel.LOW: 'Low'>, 'MINIMAL': <RiskLevel.MINIMAL: 'Minimal'>}, '_member_type_': <class 'object'>, '_value2member_map_': {'Critical': <RiskLevel.CRITICAL: 'Critical'>, 'High': <RiskLevel.HIGH: 'High'>, 'Moderate': <RiskLevel.MODERATE: 'Moderate'>, 'Low': <RiskLevel.LOW: 'Low'>, 'Minimal': <RiskLevel.MINIMAL: 'Minimal'>}, 'CRITICAL': <RiskLevel.CRITICAL: 'Critical'>, 'HIGH': <RiskLevel.HIGH: 'High'>, 'MODERATE': <RiskLevel.MODERATE: 'Moderate'>, 'LOW': <RiskLevel.LOW: 'Low'>, 'MINIMAL': <RiskLevel.MINIMAL: 'Minimal'>, '__new__': <function Enum.__new__ at 0x104f52680>}"
+      },
+      "probability": "0.8070449948560167",
+      "impact": "0.33161847916775344",
+      "time_horizon": "4.222222222222172",
+      "confidence": "0.85"
+    },
+    "raw_data": {
+      "crqc_years": [],
+      "economic_losses": [
+        21887085851.685966,
+        43201285006.97891,
+        39562930131.79297,
+        43235707782.8134,
+        39610383200.765144,
+        6585310260.313289,
+        5220138116.984325,
+        4706906633.989898,
+        43369537726.27766
+      ],
+      "attack_success_rates": []
+    }
+  },
+  "summary": {
+    "total_iterations": 10,
+    "successful_iterations": 9,
+    "failed_iterations": 1,
+    "runtime_seconds": 4.793798923492432
+  }
+}

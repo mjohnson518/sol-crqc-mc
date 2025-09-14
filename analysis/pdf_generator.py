@@ -806,7 +806,7 @@ class PDFReportGenerator:
         self.story.append(Spacer(1, 0.3*inch))
         
         # Add conditional page break to keep section together
-        self.story.append(CondPageBreak(4*inch))
+        self.story.append(CondPageBreak(2.5*inch))
         
         # Network and Economic Parameters - keep title with table
         subsection3 = Paragraph("<b>Network and Economic Parameters</b>", self.styles['ProfessionalHeading3'])
@@ -856,10 +856,11 @@ class PDFReportGenerator:
         # Add table to network section
         network_section.append(table3)
         
-        # Keep the entire section together if it fits on a page
-        if len(network_data) <= 10:
+        # Only keep title with table if table is very small
+        if len(network_data) <= 5:
             self.story.append(KeepTogether(network_section))
         else:
+            # Just add the elements normally
             self.story.extend(network_section)
     
     def _add_executive_summary(self, sections: List[Dict[str, Any]]):
@@ -926,9 +927,12 @@ class PDFReportGenerator:
         # Process remaining content
         self._process_content_professionally(content_text, story_elements)
         
-        # Keep related content together
-        self.story.append(KeepTogether(story_elements[:3]))  # Keep title and first elements
-        self.story.extend(story_elements[3:])
+        # Keep title and horizontal rule together, but let content flow naturally
+        if len(story_elements) >= 2:
+            self.story.append(KeepTogether(story_elements[:2]))  # Just title and HR
+            self.story.extend(story_elements[2:])
+        else:
+            self.story.extend(story_elements)
         
         self.story.append(PageBreak())
     
@@ -1057,8 +1061,8 @@ class PDFReportGenerator:
                         leftIndent=indent + 15,
                         firstLineIndent=-15
                     )
-                    # Use hollow circle for second level
-                    item_text = f"○ {text}"
+                    # Use hollow circle for second level (smaller)
+                    item_text = f"<font size='8'>◦</font> {text}"
                 else:
                     # First level - standard bullet using Symbol font
                     indent = INDENTATION['first_level']
@@ -1068,8 +1072,8 @@ class PDFReportGenerator:
                         leftIndent=indent + 15,
                         firstLineIndent=-15
                     )
-                    # Use filled circle bullet instead of middle dot
-                    item_text = f"● {text}"
+                    # Use filled circle bullet (slightly smaller)
+                    item_text = f"<font size='9'>•</font> {text}"
                 
                 current_list.append(Paragraph(item_text, para_style))
                 list_type = 'bullet'
@@ -1085,8 +1089,8 @@ class PDFReportGenerator:
                             list_elements.append(Spacer(1, SPACING['between_list_items']))
                     list_elements.append(Spacer(1, SPACING['after_paragraph']))
                     
-                    # Keep lists together if not too long (10 items or less)
-                    if len(current_list) <= 10:
+                    # Keep lists together only if very short (5 items or less)
+                    if len(current_list) <= 5:
                         story_elements.append(KeepTogether(list_elements))
                     else:
                         story_elements.extend(list_elements)
@@ -1110,8 +1114,8 @@ class PDFReportGenerator:
                     list_elements.append(Spacer(1, SPACING['between_list_items']))
             list_elements.append(Spacer(1, SPACING['after_paragraph']))
             
-            # Keep lists together if not too long
-            if len(current_list) <= 10:
+            # Keep lists together only if very short
+            if len(current_list) <= 5:
                 story_elements.append(KeepTogether(list_elements))
             else:
                 story_elements.extend(list_elements)
@@ -1232,8 +1236,8 @@ class PDFReportGenerator:
         
         table.setStyle(TableStyle(style))
         
-        # Keep small tables together (5 rows or less)
-        if len(para_data) <= 5:
+        # Keep only very small tables together (3 rows or less)
+        if len(para_data) <= 3:
             story_elements.append(KeepTogether([
                 table,
                 Spacer(1, SPACING['after_paragraph'])
@@ -1270,8 +1274,8 @@ class PDFReportGenerator:
                         self.styles['CodeBlock']
                     )
                     
-                    # Keep small code blocks together (20 lines or less)
-                    if len(code_lines) <= 20:
+                    # Keep only very small code blocks together (10 lines or less)
+                    if len(code_lines) <= 10:
                         story_elements.append(KeepTogether([
                             code_para,
                             Spacer(1, SPACING['after_paragraph'])
@@ -1313,8 +1317,9 @@ class PDFReportGenerator:
         if section['level'] == 1:
             self.story.append(PageBreak())
         else:
-            # Add conditional page break if less than 4 inches of space for subsections
-            self.story.append(CondPageBreak(4*inch))
+            # Add conditional page break if less than 2 inches of space for subsections
+            # This prevents orphaned headers without excessive whitespace
+            self.story.append(CondPageBreak(2*inch))
         
         title_text = f"{section_num} {clean_title.upper() if section['level'] == 1 else clean_title}"
         title = Paragraph(title_text, self.styles[style])
@@ -1341,38 +1346,16 @@ class PDFReportGenerator:
         # Process section content
         content_text = '\n'.join(section['content'])
         
-        # For better page control, keep title with first part of content
-        content_lines = content_text.split('\n')
-        first_content = []
-        remaining_content = []
-        
-        # Get first few lines/paragraph to keep with title
-        for i, line in enumerate(content_lines):
-            if i < 5:  # Keep first 5 lines with title
-                first_content.append(line)
-            else:
-                remaining_content.append(line)
-        
-        # Process first content with title group
-        if first_content:
-            temp_story = []
-            self._process_content_professionally('\n'.join(first_content), temp_story, preserve_links=preserve_links)
-            # Add first paragraph/list to title group
-            if temp_story and len(title_group) + len(temp_story[:2]) <= 5:
-                title_group.extend(temp_story[:2])
-                # Keep title group together
-                self.story.append(KeepTogether(title_group))
-                # Add remaining elements from temp_story
-                self.story.extend(temp_story[2:])
-            else:
-                self.story.append(KeepTogether(title_group))
-                self.story.extend(temp_story)
-        else:
+        # For sections, just keep the title and horizontal rule together
+        # This prevents orphaned headers without excessive grouping
+        if section['level'] == 1 and len(title_group) <= 2:
             self.story.append(KeepTogether(title_group))
+        else:
+            # For subsections, just add the title normally
+            self.story.extend(title_group)
         
-        # Process remaining content
-        if remaining_content:
-            self._process_content_professionally('\n'.join(remaining_content), preserve_links=preserve_links)
+        # Process all content normally
+        self._process_content_professionally(content_text, preserve_links=preserve_links)
         
         # Add related charts if available
         if charts_dir and section['title']:
