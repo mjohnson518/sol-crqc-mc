@@ -462,26 +462,39 @@ class PDFReportGenerator:
             ]
             para_data.append(para_row)
         
-        # Center the table by wrapping it in a centered table
-        # Use equal column widths for better centering
-        metadata_table = Table(para_data, colWidths=[2.75*inch, 2.75*inch])
+        # Create centered table with proper alignment
+        # Calculate optimal column widths
+        col1_width = 2.5*inch
+        col2_width = 2.5*inch
+        total_table_width = col1_width + col2_width
+        
+        metadata_table = Table(para_data, colWidths=[col1_width, col2_width])
         metadata_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
             ('ALIGN', (1, 0), (1, -1), 'LEFT'),
             ('TEXTCOLOR', (0, 0), (0, -1), QUANTUM_COLORS['secondary']),
             ('TEXTCOLOR', (1, 0), (1, -1), QUANTUM_COLORS['dark']),
             ('LINEBELOW', (0, 0), (-1, -2), 0.5, QUANTUM_COLORS['light']),
+            # Add light border to visualize table boundaries
+            ('BOX', (0, 0), (-1, -1), 0.5, QUANTUM_COLORS['light']),
+            ('INNERGRID', (0, 0), (-1, -1), 0.25, QUANTUM_COLORS['light']),
             ('TOPPADDING', (0, 0), (-1, -1), 8),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
         ]))
         
-        # Create a wrapper table to center the metadata table
-        wrapper_table = Table([[metadata_table]], colWidths=[6.5*inch])
+        # Center the table using horizontal spacing
+        # Calculate side margins to center the table
+        page_width = 6.5*inch
+        side_margin = (page_width - total_table_width) / 2
+        
+        # Create a wrapper table with proper centering
+        wrapper_table = Table([[None, metadata_table, None]], 
+                            colWidths=[side_margin, total_table_width, side_margin])
         wrapper_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (0, 0), 'CENTER'),
-            ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ]))
         
         self.story.append(wrapper_table)
@@ -650,10 +663,8 @@ class PDFReportGenerator:
         """Add comprehensive simulation parameters section."""
         self.story.append(PageBreak())
         
-        # Section title - this is always section 1
-        self.current_section[0] = 1
-        self.current_section[1] = 0
-        self.current_section[2] = 0
+        # Reset section numbering and start with section 1
+        self.current_section = [1, 0, 0]
         title_text = "1. SIMULATION PARAMETERS AND METHODOLOGY"
         title = Paragraph(title_text, self.styles['ProfessionalHeading1'])
         self.story.append(title)
@@ -847,11 +858,8 @@ class PDFReportGenerator:
         if not exec_summary:
             return
         
-        # Section number and title
-        self.current_section[0] += 1
-        section_num = f"{self.current_section[0]}."
-        
-        title_text = f"{section_num} SIMULATION RESULTS OVERVIEW"
+        # Executive Summary doesn't get a section number
+        title_text = "EXECUTIVE SUMMARY"
         title = Paragraph(title_text, self.styles['ProfessionalHeading1'])
         
         # Keep title with first content
