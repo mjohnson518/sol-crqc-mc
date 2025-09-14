@@ -892,9 +892,9 @@ class ReportGenerator:
         return "\n".join(recs)
     
     def _generate_appendix(self, results: Dict[str, Any]) -> str:
-        """Generate comprehensive technical appendix."""
+        """Generate comprehensive technical specifications."""
         appendix = []
-        appendix.append("## 📋 Technical Appendix")
+        appendix.append("## 📋 Technical Specifications")
         appendix.append("")
         
         # Simulation parameters
