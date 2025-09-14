@@ -18,6 +18,7 @@ from tqdm import tqdm
 from src.config import SimulationParameters
 from src.core.random_engine import RandomEngine
 from src.core.results_collector import ResultsCollector
+from src.analysis.convergence_analyzer import ConvergenceAnalyzer, ConvergenceReport
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -94,7 +95,8 @@ class MonteCarloSimulation:
     def __init__(
         self,
         config: SimulationParameters,
-        models: Optional[Dict[str, Any]] = None
+        models: Optional[Dict[str, Any]] = None,
+        enable_convergence_tracking: bool = True
     ):
         """
         Initialize the simulation engine.
@@ -102,6 +104,7 @@ class MonteCarloSimulation:
         Args:
             config: Simulation configuration parameters
             models: Optional dictionary of model instances
+            enable_convergence_tracking: Whether to enable convergence monitoring
         """
         self.config = config
         self.random_engine = RandomEngine(seed=config.random_seed)
@@ -110,6 +113,18 @@ class MonteCarloSimulation:
         
         # Model instances (will be properly initialized when models are implemented)
         self.models = models or {}
+        
+        # Initialize convergence analyzer if enabled
+        self.enable_convergence_tracking = enable_convergence_tracking
+        self.convergence_analyzer = None
+        if enable_convergence_tracking:
+            self.convergence_analyzer = ConvergenceAnalyzer(
+                convergence_threshold=0.01,
+                confidence_level=config.confidence_level,
+                min_iterations=100,
+                check_interval=max(100, config.n_iterations // 20)  # Check 20 times during simulation
+            )
+            logger.info("Convergence tracking enabled")
         
         # Validate configuration
         config.validate()
@@ -141,6 +156,30 @@ class MonteCarloSimulation:
             
             # Aggregate results
             aggregated = self._aggregate_results(results)
+            
+            # Generate convergence report if enabled
+            if self.convergence_analyzer:
+                convergence_report = self.get_convergence_report()
+                if convergence_report:
+                    aggregated['convergence_report'] = {
+                        'quality_score': convergence_report.quality_score,
+                        'overall_convergence': convergence_report.overall_convergence,
+                        'recommended_iterations': convergence_report.recommended_iterations,
+                        'converged_variables': convergence_report.converged_variables,
+                        'warnings': convergence_report.warnings
+                    }
+                    
+                    # Save convergence report
+                    if self.config.save_raw_results:
+                        report_path = Path(self.config.output_dir) / "convergence_report.json"
+                        convergence_report.to_json(report_path)
+                
+                # Warn if not converged
+                if not self.check_convergence():
+                    logger.warning(
+                        "Simulation ended before convergence. "
+                        f"Consider increasing iterations to {convergence_report.recommended_iterations:,}"
+                    )
             
             # Save if configured
             if self.config.save_raw_results:
@@ -181,6 +220,14 @@ class MonteCarloSimulation:
                     results.append(result)
                     
                     self.state.completed_iterations += 1
+                    
+                    # Track convergence if enabled
+                    if self.convergence_analyzer and result:
+                        self._track_convergence(i, result)
+                        
+                        # Log convergence status periodically
+                        if (i + 1) % self.convergence_analyzer.check_interval == 0:
+                            self._log_convergence_status()
                     
                 except Exception as e:
                     logger.warning(f"Iteration {i} failed: {e}")
@@ -232,6 +279,15 @@ class MonteCarloSimulation:
                         completed = len(batch_results)
                         self.state.completed_iterations += completed
                         self.state.failed_iterations += (batch_end - batch_start) - completed
+                        
+                        # Track convergence for batch results
+                        if self.convergence_analyzer:
+                            for result in batch_results:
+                                self._track_convergence(result.iteration_id, result)
+                            
+                            # Log convergence status periodically
+                            if self.state.completed_iterations % self.convergence_analyzer.check_interval == 0:
+                                self._log_convergence_status()
                         
                     except Exception as e:
                         logger.error(f"Batch {batch_start}-{batch_end} failed: {e}")
@@ -735,3 +791,122 @@ class MonteCarloSimulation:
             logger.warning("Simulation will run with placeholder implementations")
         
         return len(missing) == 0
+    
+    def _track_convergence(self, iteration: int, result: SimulationResult) -> None:
+        """
+        Track convergence metrics for the current iteration.
+        
+        Args:
+            iteration: Current iteration number
+            result: Simulation result for this iteration
+        """
+        if not self.convergence_analyzer:
+            return
+        
+        # Extract key metrics to track
+        metrics = {}
+        
+        # CRQC emergence year
+        if 'crqc_year' in result.quantum_timeline:
+            metrics['crqc_year'] = result.quantum_timeline['crqc_year']
+        
+        # First attack year
+        if result.first_attack_year:
+            metrics['first_attack_year'] = result.first_attack_year
+        
+        # Economic impact metrics
+        if 'total_loss' in result.economic_impact:
+            metrics['total_economic_loss'] = result.economic_impact['total_loss']
+        
+        if 'peak_loss' in result.economic_impact:
+            metrics['peak_economic_loss'] = result.economic_impact['peak_loss']
+        
+        # Attack probability
+        if 'successful_attacks' in result.attack_results:
+            total_attacks = result.attack_results.get('total_attempts', 1)
+            success_rate = result.attack_results['successful_attacks'] / max(1, total_attacks)
+            metrics['attack_success_rate'] = success_rate
+        
+        # Network vulnerability
+        if 'vulnerability_score' in result.network_state:
+            metrics['network_vulnerability'] = result.network_state['vulnerability_score']
+        
+        # Track metrics
+        if metrics:
+            self.convergence_analyzer.track(iteration, metrics)
+    
+    def _log_convergence_status(self) -> None:
+        """Log current convergence status."""
+        if not self.convergence_analyzer:
+            return
+        
+        # Check key metrics
+        key_metrics = ['crqc_year', 'total_economic_loss', 'attack_success_rate']
+        converged_count = 0
+        
+        for metric in key_metrics:
+            if metric in self.convergence_analyzer.data:
+                metrics = self.convergence_analyzer.get_current_metrics(metric)
+                if metrics and metrics.is_converged:
+                    converged_count += 1
+                    logger.info(
+                        f"{metric} converged: mean={metrics.running_mean:.4f}, "
+                        f"SE={metrics.standard_error:.4f}, CV={metrics.coefficient_of_variation:.4f}"
+                    )
+                elif metrics:
+                    logger.debug(
+                        f"{metric} not converged: CV={metrics.coefficient_of_variation:.4f}"
+                    )
+        
+        if converged_count == len(key_metrics):
+            logger.info("All key metrics have converged!")
+        else:
+            logger.info(f"{converged_count}/{len(key_metrics)} key metrics converged")
+    
+    def get_convergence_report(self, save_path: Optional[Path] = None) -> Optional[ConvergenceReport]:
+        """
+        Generate convergence report for the simulation.
+        
+        Args:
+            save_path: Optional path to save JSON report
+            
+        Returns:
+            ConvergenceReport or None if convergence tracking disabled
+        """
+        if not self.convergence_analyzer:
+            logger.warning("Convergence tracking not enabled")
+            return None
+        
+        # Generate report
+        report = self.convergence_analyzer.generate_report(save_path)
+        
+        # Log summary
+        logger.info("=" * 60)
+        logger.info("CONVERGENCE REPORT")
+        logger.info("=" * 60)
+        logger.info(f"Quality Score: {report.quality_score}")
+        logger.info(f"Overall Convergence: {'YES' if report.overall_convergence else 'NO'}")
+        logger.info(f"Converged Variables: {len(report.converged_variables)}")
+        logger.info(f"Non-Converged Variables: {len(report.non_converged_variables)}")
+        logger.info(f"Recommended Iterations: {report.recommended_iterations:,}")
+        
+        if report.warnings:
+            logger.warning("Convergence Warnings:")
+            for warning in report.warnings:
+                logger.warning(f"  - {warning}")
+        
+        logger.info("=" * 60)
+        
+        return report
+    
+    def check_convergence(self) -> bool:
+        """
+        Check if simulation has converged.
+        
+        Returns:
+            True if all tracked metrics have converged
+        """
+        if not self.convergence_analyzer:
+            return False
+        
+        return self.convergence_analyzer.is_converged()
