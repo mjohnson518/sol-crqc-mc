@@ -1324,12 +1324,8 @@ class PDFReportGenerator:
         
         # Add page break for major sections, conditional break for subsections
         if section['level'] == 1:
-            # Special handling for Technical Specifications section
-            if 'technical specifications' in clean_title.lower():
-                # Use conditional page break to avoid unnecessary blank space
-                self.story.append(CondPageBreak(3*inch))
-            else:
-                self.story.append(PageBreak())
+            # All level 1 sections should start on a new page for consistency
+            self.story.append(PageBreak())
         elif section['level'] == 2:
             # Check if this is the Quantum Computing Development Timeline section
             # Force a page break to prevent orphaning
