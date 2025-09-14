@@ -1335,16 +1335,16 @@ class PDFReportGenerator:
             # Force a page break to prevent orphaning
             if 'quantum' in clean_title.lower() and 'timeline' in clean_title.lower():
                 self.story.append(PageBreak())
-            # Check if this is Key Variables section
+            # Check if this is Key Variables section - force page break to prevent orphaning
             elif 'key variables' in clean_title.lower():
-                self.story.append(CondPageBreak(3*inch))
+                self.story.append(PageBreak())
             else:
                 # For other level 2 headers, ensure enough space
                 self.story.append(CondPageBreak(2.5*inch))
         else:
-            # For level 3+ headers, special handling for Network Parameters
+            # For level 3+ headers, special handling for Network Parameters - force page break
             if 'network parameters' in clean_title.lower():
-                self.story.append(CondPageBreak(2.5*inch))
+                self.story.append(PageBreak())
             else:
                 # For other level 3+ headers, use smaller threshold
                 self.story.append(CondPageBreak(2*inch))
