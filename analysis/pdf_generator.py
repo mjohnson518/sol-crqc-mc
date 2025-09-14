@@ -462,7 +462,9 @@ class PDFReportGenerator:
             ]
             para_data.append(para_row)
         
-        metadata_table = Table(para_data, colWidths=[2.5*inch, 3*inch])
+        # Center the table by wrapping it in a centered table
+        # Use equal column widths for better centering
+        metadata_table = Table(para_data, colWidths=[2.75*inch, 2.75*inch])
         metadata_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
             ('ALIGN', (1, 0), (1, -1), 'LEFT'),
@@ -475,7 +477,14 @@ class PDFReportGenerator:
             ('RIGHTPADDING', (0, 0), (-1, -1), 6),
         ]))
         
-        self.story.append(metadata_table)
+        # Create a wrapper table to center the metadata table
+        wrapper_table = Table([[metadata_table]], colWidths=[6.5*inch])
+        wrapper_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+            ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),
+        ]))
+        
+        self.story.append(wrapper_table)
         
         # Author and organization
         self.story.append(Spacer(1, 0.8*inch))
@@ -516,7 +525,9 @@ class PDFReportGenerator:
     
     def _add_professional_design_element(self):
         """Add a sophisticated geometric design element to the cover page."""
-        d = Drawing(400, 120)
+        # Calculate drawing width to match page width minus margins (6.5 inches = 468 points)
+        page_width = 6.5 * inch
+        d = Drawing(page_width, 120)
         
         # Create gradient-like effect with overlapping shapes
         # Professional geometric pattern
@@ -524,11 +535,20 @@ class PDFReportGenerator:
         # Central hexagon pattern
         from reportlab.graphics.shapes import Polygon
         
-        # Create subtle geometric shapes
-        for i in range(3):
-            for j in range(5):
-                x = 80 + j * 60
-                y = 30 + i * 30
+        # Create subtle geometric shapes - center the pattern
+        num_cols = 5
+        num_rows = 3
+        spacing_x = 60
+        spacing_y = 30
+        
+        # Calculate starting position to center the pattern
+        pattern_width = (num_cols - 1) * spacing_x
+        start_x = (page_width - pattern_width) / 2
+        
+        for i in range(num_rows):
+            for j in range(num_cols):
+                x = start_x + j * spacing_x
+                y = 30 + i * spacing_y
                 
                 # Create small circles with varying opacity
                 circle = Circle(x, y, 8)
@@ -540,8 +560,8 @@ class PDFReportGenerator:
                 d.add(circle)
                 
                 # Connect with subtle lines
-                if j < 4:
-                    line = Line(x + 8, y, x + 52, y)
+                if j < num_cols - 1:
+                    line = Line(x + 8, y, x + spacing_x - 8, y)
                     line.strokeColor = QUANTUM_COLORS['light']
                     line.strokeWidth = 0.5
                     line.strokeOpacity = 0.5
