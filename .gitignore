@@ -57,8 +57,12 @@ data/output/figures/*.png
 data/output/figures/*.pdf
 data/output/figures/*.svg
 
+# Simulation results - DO NOT COMMIT
+simulation_results/
+!simulation_results/.gitkeep
+
 # Large simulation data files (don't track multi-GB files)
-simulation_results/*/data/raw_results.json
+# simulation_results/*/data/raw_results.json  # Now covered by simulation_results/ above
 
 # Log files
 *.log
