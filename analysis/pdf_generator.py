@@ -88,16 +88,17 @@ INDENTATION = {
     'third_level': 40,
 }
 
-# Professional typography
+# Professional typography - Computer Modern for academic feel
+# Note: Using Times-Roman as fallback if Computer Modern not available
 TYPOGRAPHY = {
-    'title': ('Helvetica-Bold', 24),
-    'heading1': ('Helvetica-Bold', 16),
-    'heading2': ('Helvetica-Bold', 13),
-    'heading3': ('Helvetica', 11),
-    'body': ('Helvetica', 10),
-    'caption': ('Helvetica-Oblique', 9),
+    'title': ('Times-Bold', 24),
+    'heading1': ('Times-Bold', 16),
+    'heading2': ('Times-Bold', 13),
+    'heading3': ('Times-Roman', 11),
+    'body': ('Times-Roman', 10),
+    'caption': ('Times-Italic', 9),
     'code': ('Courier', 9),
-    'footer': ('Helvetica', 8),
+    'footer': ('Times-Roman', 8),
 }
 
 
@@ -161,7 +162,7 @@ class ProfessionalCanvas(canvas.Canvas):
         self.saveState()
         self.setFillColor(QUANTUM_COLORS['light'])
         self.setFillAlpha(0.03)  # Very subtle
-        self.setFont('Helvetica', 120)
+        self.setFont('Times-Roman', 120)
         self.rotate(45)
         self.drawCentredString(4*inch, 2*inch, "CONFIDENTIAL")
         self.restoreState()
@@ -1535,7 +1536,7 @@ class PDFReportGenerator:
             parent=self.styles['ProfessionalBody'],
             fontSize=9,
             textColor=QUANTUM_COLORS['secondary'],
-            fontName='Helvetica-Oblique',
+            fontName='Times-Italic',
             alignment=4  # Justified
         )
         
