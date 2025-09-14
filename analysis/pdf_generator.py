@@ -359,6 +359,27 @@ class PDFReportGenerator:
         Returns:
             Clean text without markdown symbols, optionally with hyperlinks
         """
+        # Remove emojis first - comprehensive approach
+        # Pattern to match most common emojis and unicode symbols
+        emoji_pattern = re.compile(
+            "["
+            "\U0001F600-\U0001F64F"  # emoticons
+            "\U0001F300-\U0001F5FF"  # symbols & pictographs
+            "\U0001F680-\U0001F6FF"  # transport & map symbols
+            "\U0001F700-\U0001F77F"  # alchemical symbols
+            "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended
+            "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
+            "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
+            "\U0001FA00-\U0001FA6F"  # Chess Symbols
+            "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
+            "\U00002702-\U000027B0"
+            "\U000024C2-\U0001F251"
+            "\U00002600-\U000026FF"  # Miscellaneous Symbols
+            "\U00002700-\U000027BF"  # Dingbats
+            "]+", flags=re.UNICODE
+        )
+        text = emoji_pattern.sub('', text)
+        
         # Convert or remove markdown links based on preserve_links flag
         if preserve_links:
             # Convert markdown links to ReportLab hyperlinks
@@ -377,7 +398,7 @@ class PDFReportGenerator:
         text = re.sub(r'`([^`]+)`', r'\1', text)
         
         # Remove bullet point symbols (including squares) - anywhere in text
-        text = re.sub(r'[■•◦▪▸→]\s*', '', text)
+        text = re.sub(r'[■•◦▪▸→●○□▢▣▤▥▦▧▨▩]\s*', '', text)
         # Remove markdown bullet indicators at line start
         text = re.sub(r'^[\-\*]\s*', '', text)
         
@@ -608,7 +629,14 @@ class PDFReportGenerator:
         # Track section numbering separately for TOC
         toc_section = [0, 0, 0]
         
-        # Add simulation parameters section to TOC first (it's always section 1)
+        # Add Executive Summary as first unnumbered entry
+        title_text = f"<b>EXECUTIVE SUMMARY</b>"
+        title_para = Paragraph(title_text, self.styles['TOCLevel1'])
+        page_para = Paragraph(str(page_num), self.styles['ProfessionalBody'])
+        toc_data.append([title_para, page_para])
+        page_num += 1
+        
+        # Add simulation parameters section to TOC (it's always section 1)
         toc_section[0] = 1
         title_text = f"<b>1. SIMULATION PARAMETERS AND METHODOLOGY</b>"
         title_para = Paragraph(title_text, self.styles['TOCLevel1'])
@@ -617,7 +645,7 @@ class PDFReportGenerator:
         page_num += 1
         
         for section in sections:
-            # Skip executive summary in TOC (it's added separately)
+            # Skip executive summary in TOC (it's added separately above)
             clean_title = self._clean_markdown_text(section['title'])
             if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
                 continue
@@ -627,11 +655,13 @@ class PDFReportGenerator:
                     # Main sections - bold with section number
                     toc_section[0] += 1
                     toc_section[1] = 0
+                    # Clean title to remove any emojis or special characters
                     title_text = f"<b>{toc_section[0]}. {clean_title.upper()}</b>"
                     title_para = Paragraph(title_text, self.styles['TOCLevel1'])
                 else:
                     # Subsections - indented with subsection number
                     toc_section[1] += 1
+                    # Clean title to remove any emojis or special characters
                     title_text = f"{toc_section[0]}.{toc_section[1]} {clean_title}"
                     title_para = Paragraph(title_text, self.styles['TOCLevel2'])
                 
