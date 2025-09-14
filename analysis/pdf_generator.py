@@ -1041,8 +1041,11 @@ class PDFReportGenerator:
             elif bullet_match:
                 text = self._clean_markdown_text(bullet_match.group(1), preserve_links=preserve_links)
                 
-                # Determine bullet level and use simple formatting
-                if line.startswith('    ') or line.startswith('\t\t'):
+                # Check indentation BEFORE the bullet marker
+                # Count leading spaces or tabs
+                leading_spaces = len(line) - len(line.lstrip())
+                
+                if leading_spaces >= 4:
                     # Third level - simple dash
                     indent = INDENTATION['third_level']
                     para_style = ParagraphStyle(
@@ -1051,9 +1054,9 @@ class PDFReportGenerator:
                         leftIndent=indent + 15,
                         firstLineIndent=-15
                     )
-                    item_text = f"<font size='10'>-</font> {text}"
-                elif line.startswith('  ') or line.startswith('\t'):
-                    # Second level - simple circle using unicode
+                    item_text = f"<font size='9'>–</font> {text}"
+                elif leading_spaces >= 2:
+                    # Second level - hollow circle
                     indent = INDENTATION['second_level']
                     para_style = ParagraphStyle(
                         'BulletItem2',
@@ -1061,10 +1064,10 @@ class PDFReportGenerator:
                         leftIndent=indent + 15,
                         firstLineIndent=-15
                     )
-                    # Use hollow circle for second level (smaller)
-                    item_text = f"<font size='8'>◦</font> {text}"
+                    # Use hollow circle for second level
+                    item_text = f"<font size='9' color='black'>○</font> {text}"
                 else:
-                    # First level - standard bullet using Symbol font
+                    # First level - filled circle bullet
                     indent = INDENTATION['first_level']
                     para_style = ParagraphStyle(
                         'BulletItem1',
@@ -1072,8 +1075,8 @@ class PDFReportGenerator:
                         leftIndent=indent + 15,
                         firstLineIndent=-15
                     )
-                    # Use filled circle bullet (slightly smaller)
-                    item_text = f"<font size='9'>•</font> {text}"
+                    # Use filled circle bullet
+                    item_text = f"<font size='10' color='black'>•</font> {text}"
                 
                 current_list.append(Paragraph(item_text, para_style))
                 list_type = 'bullet'
@@ -1236,6 +1239,10 @@ class PDFReportGenerator:
         
         table.setStyle(TableStyle(style))
         
+        # For tables, add a conditional page break before if needed
+        # This prevents orphaned table headers
+        story_elements.append(CondPageBreak(2.5*inch))
+        
         # Keep only very small tables together (3 rows or less)
         if len(para_data) <= 3:
             story_elements.append(KeepTogether([
@@ -1316,9 +1323,11 @@ class PDFReportGenerator:
         # Add page break for major sections, conditional break for subsections
         if section['level'] == 1:
             self.story.append(PageBreak())
+        elif section['level'] == 2:
+            # For level 2 headers, ensure enough space
+            self.story.append(CondPageBreak(2.5*inch))
         else:
-            # Add conditional page break if less than 2 inches of space for subsections
-            # This prevents orphaned headers without excessive whitespace
+            # For level 3+ headers, use smaller threshold
             self.story.append(CondPageBreak(2*inch))
         
         title_text = f"{section_num} {clean_title.upper() if section['level'] == 1 else clean_title}"
