@@ -1300,6 +1300,11 @@ class PDFReportGenerator:
         if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
             return
         
+        # SPECIAL HANDLING: Force page break BEFORE Technical Specifications to prevent orphaning
+        if 'technical specifications' in clean_title.lower() and section['level'] == 1:
+            # Clear any pending content and start fresh on next page
+            self.story.append(PageBreak())
+        
         # Update section numbering (starting from 2 since 1 is simulation parameters)
         if section['level'] == 1:
             self.current_section[0] += 1
@@ -1324,8 +1329,10 @@ class PDFReportGenerator:
         
         # Add page break for major sections, conditional break for subsections
         if section['level'] == 1:
-            # All level 1 sections should start on a new page for consistency
-            self.story.append(PageBreak())
+            # Skip redundant page break for Technical Specifications (already added above)
+            if 'technical specifications' not in clean_title.lower():
+                # All other level 1 sections should start on a new page for consistency
+                self.story.append(PageBreak())
         elif section['level'] == 2:
             # Check if this is the Quantum Computing Development Timeline section
             # Force a page break to prevent orphaning
