@@ -1007,7 +1007,7 @@ class PDFReportGenerator:
             self._process_code_blocks_professional(content, story_elements)
         elif '|' in content and '---' in content:
             self._process_tables_professional(content, story_elements)
-        elif re.search(r'^\s*[-*+•◦▪]\s', content, re.MULTILINE) or re.search(r'^\s*\d+\.\s', content, re.MULTILINE):
+        elif re.search(r'^\s*[-*+]\s', content, re.MULTILINE) or re.search(r'^\s*\d+\.\s', content, re.MULTILINE):
             self._process_lists_professional(content, story_elements, preserve_links)
         else:
             # Process as regular paragraphs
@@ -1044,7 +1044,8 @@ class PDFReportGenerator:
                 text = self._clean_markdown_text(bullet_match.group(2), preserve_links=preserve_links)
                 
                 # Count leading spaces for indentation level
-                leading_spaces = len(indentation)
+                # Tabs count as 4 spaces for proper indentation detection
+                leading_spaces = indentation.count('\t') * 4 + len(indentation.replace('\t', ''))
                 
                 if leading_spaces >= 4:
                     # Third level - dash
@@ -1065,10 +1066,10 @@ class PDFReportGenerator:
                         leftIndent=indent + 15,
                         firstLineIndent=-15
                     )
-                    # Use hollow circle for second level
-                    item_text = f"<font size='9'>○</font> {text}"
+                    # Use hollow circle for second level (size 10)
+                    item_text = f"<font size='10'>○</font> {text}"
                 else:
-                    # First level - filled circle bullet
+                    # First level - filled circle bullet (size 11)
                     indent = INDENTATION['first_level']
                     para_style = ParagraphStyle(
                         'BulletItem1',
@@ -1076,8 +1077,8 @@ class PDFReportGenerator:
                         leftIndent=indent + 15,
                         firstLineIndent=-15
                     )
-                    # Use filled circle bullet
-                    item_text = f"<font size='10'>•</font> {text}"
+                    # Use filled circle bullet (size 11 for primary)
+                    item_text = f"<font size='11'>•</font> {text}"
                 
                 current_list.append(Paragraph(item_text, para_style))
                 list_type = 'bullet'
