@@ -1028,8 +1028,8 @@ class PDFReportGenerator:
         for line in lines:
             # Check for numbered list
             numbered_match = re.match(r'^\s*(\d+)\.\s+(.+)', line)
-            # Check for bullet list (simple patterns only)
-            bullet_match = re.match(r'^\s*[-*+]\s+(.+)', line)
+            # Check for bullet list - capture leading spaces separately
+            bullet_match = re.match(r'^(\s*)[-*+]\s+(.+)', line)
             
             if numbered_match:
                 number = numbered_match.group(1)
@@ -1039,14 +1039,15 @@ class PDFReportGenerator:
                 list_type = 'numbered'
                 
             elif bullet_match:
-                text = self._clean_markdown_text(bullet_match.group(1), preserve_links=preserve_links)
+                # Get the indentation and the text
+                indentation = bullet_match.group(1)
+                text = self._clean_markdown_text(bullet_match.group(2), preserve_links=preserve_links)
                 
-                # Check indentation BEFORE the bullet marker
-                # Count leading spaces or tabs
-                leading_spaces = len(line) - len(line.lstrip())
+                # Count leading spaces for indentation level
+                leading_spaces = len(indentation)
                 
                 if leading_spaces >= 4:
-                    # Third level - simple dash
+                    # Third level - dash
                     indent = INDENTATION['third_level']
                     para_style = ParagraphStyle(
                         'BulletItem3',
@@ -1065,7 +1066,7 @@ class PDFReportGenerator:
                         firstLineIndent=-15
                     )
                     # Use hollow circle for second level
-                    item_text = f"<font size='9' color='black'>○</font> {text}"
+                    item_text = f"<font size='9'>○</font> {text}"
                 else:
                     # First level - filled circle bullet
                     indent = INDENTATION['first_level']
@@ -1076,7 +1077,7 @@ class PDFReportGenerator:
                         firstLineIndent=-15
                     )
                     # Use filled circle bullet
-                    item_text = f"<font size='10' color='black'>•</font> {text}"
+                    item_text = f"<font size='10'>•</font> {text}"
                 
                 current_list.append(Paragraph(item_text, para_style))
                 list_type = 'bullet'
@@ -1324,8 +1325,13 @@ class PDFReportGenerator:
         if section['level'] == 1:
             self.story.append(PageBreak())
         elif section['level'] == 2:
-            # For level 2 headers, ensure enough space
-            self.story.append(CondPageBreak(2.5*inch))
+            # Check if this is the Quantum Computing Development Timeline section
+            # Force a page break to prevent orphaning
+            if 'quantum' in clean_title.lower() and 'timeline' in clean_title.lower():
+                self.story.append(PageBreak())
+            else:
+                # For other level 2 headers, ensure enough space
+                self.story.append(CondPageBreak(2.5*inch))
         else:
             # For level 3+ headers, use smaller threshold
             self.story.append(CondPageBreak(2*inch))
