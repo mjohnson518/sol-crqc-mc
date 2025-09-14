@@ -1324,18 +1324,30 @@ class PDFReportGenerator:
         
         # Add page break for major sections, conditional break for subsections
         if section['level'] == 1:
-            self.story.append(PageBreak())
+            # Special handling for Technical Specifications section
+            if 'technical specifications' in clean_title.lower():
+                # Use conditional page break to avoid unnecessary blank space
+                self.story.append(CondPageBreak(3*inch))
+            else:
+                self.story.append(PageBreak())
         elif section['level'] == 2:
             # Check if this is the Quantum Computing Development Timeline section
             # Force a page break to prevent orphaning
             if 'quantum' in clean_title.lower() and 'timeline' in clean_title.lower():
                 self.story.append(PageBreak())
+            # Check if this is Key Variables section
+            elif 'key variables' in clean_title.lower():
+                self.story.append(CondPageBreak(3*inch))
             else:
                 # For other level 2 headers, ensure enough space
                 self.story.append(CondPageBreak(2.5*inch))
         else:
-            # For level 3+ headers, use smaller threshold
-            self.story.append(CondPageBreak(2*inch))
+            # For level 3+ headers, special handling for Network Parameters
+            if 'network parameters' in clean_title.lower():
+                self.story.append(CondPageBreak(2.5*inch))
+            else:
+                # For other level 3+ headers, use smaller threshold
+                self.story.append(CondPageBreak(2*inch))
         
         title_text = f"{section_num} {clean_title.upper() if section['level'] == 1 else clean_title}"
         title = Paragraph(title_text, self.styles[style])
@@ -1432,6 +1444,38 @@ class PDFReportGenerator:
         ]))
         
         self.story.append(ref_table)
+        self.story.append(Spacer(1, SPACING['after_paragraph']))
+    
+    def _add_disclaimer(self):
+        """Add the final disclaimer at the end of the report."""
+        # Add a separator line
+        self.story.append(Spacer(1, SPACING['after_heading_2']))
+        self.story.append(HRFlowable(
+            width="100%", 
+            thickness=0.5, 
+            color=QUANTUM_COLORS['secondary'],
+            spaceBefore=6,
+            spaceAfter=12
+        ))
+        
+        # Add disclaimer text
+        disclaimer_text = (
+            "This report represents probabilistic modeling and should not be considered "
+            "investment advice. Results are based on current understanding of quantum "
+            "computing development and may change as new information becomes available."
+        )
+        
+        disclaimer_style = ParagraphStyle(
+            'Disclaimer',
+            parent=self.styles['ProfessionalBody'],
+            fontSize=9,
+            textColor=QUANTUM_COLORS['secondary'],
+            fontName='Helvetica-Oblique',
+            alignment=4  # Justified
+        )
+        
+        disclaimer_para = Paragraph(disclaimer_text, disclaimer_style)
+        self.story.append(disclaimer_para)
         self.story.append(Spacer(1, SPACING['after_paragraph']))
     
     def _add_section_charts(self, section_title: str, charts_dir: Path):
@@ -1602,6 +1646,9 @@ class PDFReportGenerator:
         # Add main sections
         for section in sections:
             self._add_section(section, charts_dir)
+        
+        # Add final disclaimer
+        self._add_disclaimer()
         
         # Build PDF with professional canvas
         doc.build(self.story, canvasmaker=ProfessionalCanvas)
