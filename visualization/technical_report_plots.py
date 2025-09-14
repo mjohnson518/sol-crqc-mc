@@ -355,11 +355,13 @@ class TechnicalReportPlots:
         ]
         
         for day, milestone in milestones:
-            recovery_pct = recovery_curves[scenario][day] * 100
-            ax2.scatter(day, recovery_pct, s=100, color=self.colors['warning'],
+            # Handle edge case where day might be out of bounds
+            actual_day = min(day, len(days) - 1)
+            recovery_pct = recovery_curves[scenario][actual_day] * 100
+            ax2.scatter(actual_day, recovery_pct, s=100, color=self.colors['warning'],
                        zorder=5, edgecolors='black')
             ax2.annotate(f'{milestone}\n({recovery_pct:.0f}%)',
-                        (day, recovery_pct), xytext=(10, 10),
+                        (actual_day, recovery_pct), xytext=(10, 10),
                         textcoords='offset points', fontsize=8)
         
         ax2.set_xlabel('Days After Attack', fontsize=11)

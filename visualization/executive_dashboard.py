@@ -165,9 +165,15 @@ class ExecutiveDashboard:
         convergence = self.results.get('convergence_report', {})
         
         # Create info boxes
+        n_iter = params.get('n_iterations', 'N/A')
+        iter_str = f"{n_iter:,}" if isinstance(n_iter, (int, float)) else str(n_iter)
+        
+        conf_level = params.get('confidence_level', 0.95)
+        conf_str = f"{conf_level*100:.0f}%" if isinstance(conf_level, (int, float)) else str(conf_level)
+        
         info_items = [
-            ('Iterations', f"{params.get('n_iterations', 'N/A'):,}"),
-            ('Confidence', f"{params.get('confidence_level', 0.95)*100:.0f}%"),
+            ('Iterations', iter_str),
+            ('Confidence', conf_str),
             ('Time Horizon', f"{params.get('start_year', 2025)}-{params.get('end_year', 2045)}"),
             ('Quality Score', convergence.get('quality_score', 'N/A')),
             ('Convergence', '✓' if convergence.get('overall_convergence') else '✗'),

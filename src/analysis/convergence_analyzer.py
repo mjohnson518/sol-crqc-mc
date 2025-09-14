@@ -240,14 +240,17 @@ class ConvergenceAnalyzer:
         acf = self._calculate_acf(data, max_lag=min(n//4, 100))
         
         # Find first negative autocorrelation or cutoff
-        first_negative = n
-        for i, ac in enumerate(acf[1:], 1):
-            if ac < 0:
+        first_negative = len(acf)
+        for i in range(1, len(acf)):
+            if acf[i] < 0:
                 first_negative = i
                 break
         
         # Sum autocorrelations up to first negative
-        sum_acf = 1 + 2 * np.sum(acf[1:first_negative])
+        if first_negative > 1:
+            sum_acf = 1 + 2 * np.sum(acf[1:first_negative])
+        else:
+            sum_acf = 1.0
         
         # Effective sample size
         ess = n / max(1, sum_acf)
@@ -266,11 +269,16 @@ class ConvergenceAnalyzer:
             Autocorrelation coefficient
         """
         n = len(data)
-        if n <= lag:
-            return 0.0
+        if n <= lag or lag == 0:
+            return 1.0 if lag == 0 else 0.0
         
         mean = np.mean(data)
         c0 = np.sum((data - mean) ** 2) / n
+        
+        # Ensure we have valid array slices
+        if lag >= n:
+            return 0.0
+            
         c_lag = np.sum((data[:-lag] - mean) * (data[lag:] - mean)) / n
         
         if c0 == 0:
@@ -289,8 +297,12 @@ class ConvergenceAnalyzer:
         Returns:
             Array of autocorrelation coefficients
         """
-        acf = np.zeros(max_lag + 1)
-        for lag in range(max_lag + 1):
+        n = len(data)
+        # Ensure max_lag doesn't exceed data length
+        actual_max_lag = min(max_lag, n - 1)
+        
+        acf = np.zeros(actual_max_lag + 1)
+        for lag in range(actual_max_lag + 1):
             acf[lag] = self._calculate_autocorrelation(data, lag)
         return acf
     
