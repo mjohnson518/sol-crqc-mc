@@ -496,7 +496,7 @@ class PDFReportGenerator:
             ['Total Iterations', f'{total_iterations:,}'],
             ['Successful Runs', f'{successful:,} ({successful/total_iterations*100:.1f}%)' if total_iterations > 0 else 'N/A'],
             ['Confidence Level', f'{confidence*100:.0f}%'],
-            ['Analysis Period', '2025-2050'],
+            ['Analysis Period', '2025-2045'],
             ['Runtime', runtime_str],
             ['Date Generated', datetime.now().strftime('%B %d, %Y')]
         ]
@@ -891,7 +891,7 @@ class PDFReportGenerator:
             ['Confidence Level', f'{self.simulation_metadata.get("confidence_level", 0.95)*100:.0f}%', 'Statistical confidence level for results'],
             ['Random Seed', '42', 'Fixed seed for reproducibility'],
             ['CPU Cores Used', '10', 'Parallel processing cores utilized'],
-            ['Time Horizon', '2025-2050', 'Simulation period analyzed'],
+            ['Time Horizon', '2025-2045', 'Simulation period analyzed'],
             ['Time Step', '30 days', 'Temporal resolution of simulation'],
         ]
         
