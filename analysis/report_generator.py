@@ -155,10 +155,19 @@ class ReportGenerator:
         summary.append("### Simulation Overview")
         summary.append("")
         summary.append(f"- **Total Iterations:** {n_iterations:,} Monte Carlo simulations")
-        summary.append(f"- **Analysis Period:** {metadata.get('end_year', 2050) - metadata.get('start_year', 2025)} years")
-        summary.append(f"- **Time Horizon:** {metadata.get('start_year', 2025)}-{metadata.get('end_year', 2050)}")
+        summary.append(f"- **Analysis Period:** {metadata.get('end_year', 2045) - metadata.get('start_year', 2025)} years")
+        summary.append(f"- **Time Horizon:** {metadata.get('start_year', 2025)}-{metadata.get('end_year', 2045)}")
         summary.append(f"- **Confidence Level:** 95%")
-        summary.append(f"- **Runtime:** {metadata.get('total_runtime', 0):.1f} seconds")
+        
+        # Format runtime properly
+        runtime = metadata.get('runtime_seconds', 0)
+        if runtime > 3600:
+            runtime_str = f"{runtime/3600:.1f} hours"
+        elif runtime > 60:
+            runtime_str = f"{runtime/60:.1f} minutes"
+        else:
+            runtime_str = f"{runtime:.1f} seconds"
+        summary.append(f"- **Runtime:** {runtime_str}")
         summary.append("")
         
         # Risk summary with critical indicators

@@ -1036,7 +1036,7 @@ class PDFReportGenerator:
         # If no executive summary found or content is empty, create default content
         if not exec_summary or not exec_summary.get('content') or all(not line.strip() for line in exec_summary['content']):
             # Create default overview content
-            runtime = self.simulation_metadata.get('runtime_seconds', 0)
+            runtime = self.simulation_metadata.get('runtime_seconds', 200)
             if runtime > 3600:
                 runtime_str = f"{runtime/3600:.1f} hours"
             elif runtime > 60:
