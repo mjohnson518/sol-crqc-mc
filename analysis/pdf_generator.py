@@ -588,78 +588,159 @@ class PDFReportGenerator:
         """Add a Solana-inspired gradient design element to the cover page."""
         # Calculate drawing width to match page width minus margins (6.5 inches = 468 points)
         page_width = 6.5 * inch
-        d = Drawing(page_width, 120)
+        d = Drawing(page_width, 140)
         
-        # Create Solana-inspired gradient effect with progressive darkening
-        # from bottom left to top right
+        from reportlab.graphics.shapes import Polygon, Rect, Circle, Line
+        from reportlab.lib.colors import Color, HexColor
         
-        from reportlab.graphics.shapes import Polygon, Rect
-        from reportlab.lib.colors import Color
-        
-        # Helper function to darken colors
-        def darken_color(color, factor=0.85):
-            """Darken a color by the given factor (0.85 = 15% darker)"""
-            return Color(color.red * factor, color.green * factor, color.blue * factor)
-        
-        # Create grid of circles with Solana gradient - reduced and uniform
+        # Create more dynamic grid pattern
         num_cols = 6
         num_rows = 3
         spacing_x = 70
-        spacing_y = 35
-        radius = 12  # Uniform radius for all circles
+        spacing_y = 40
         
         # Calculate starting position to center the pattern
         pattern_width = (num_cols - 1) * spacing_x
         start_x = (page_width - pattern_width) / 2
         
-        # Solana gradient colors for progression - made 15% darker
-        original_colors = [
-            HexColor('#14F195'),  # Bright teal (bottom left)
-            HexColor('#00D4FF'),  # Cyan
-            HexColor('#8C52FF'),  # Light purple
-            HexColor('#9945FF'),  # Solana purple
-            HexColor('#5E17EB'),  # Medium purple
-            HexColor('#4E44CE'),  # Deep blue
-            HexColor('#3C0F9F'),  # Dark purple (top right)
+        # Solana's actual brand colors from their website
+        # More vibrant and true to their gradient
+        solana_gradient = [
+            HexColor('#14F195'),  # Bright teal/green (signature Solana green)
+            HexColor('#00FFF0'),  # Bright cyan
+            HexColor('#00D4FF'),  # Sky blue
+            HexColor('#9945FF'),  # Solana purple (their primary brand color)
+            HexColor('#C13CFF'),  # Bright magenta
+            HexColor('#F087FF'),  # Light pink/magenta
         ]
         
-        # Make colors 15% darker
-        gradient_colors = [darken_color(color, 0.85) for color in original_colors]
+        # Add subtle background gradient rectangles for depth
+        for i in range(3):
+            rect = Rect(
+                start_x - 20 + i * 50, 
+                10 + i * 15, 
+                pattern_width - i * 100 + 40, 
+                100 - i * 30
+            )
+            rect.fillColor = solana_gradient[min(i * 2, len(solana_gradient) - 1)]
+            rect.fillOpacity = 0.03
+            rect.strokeColor = None
+            d.add(rect)
         
+        # Create the node network pattern
+        nodes = []
         for i in range(num_rows):
+            row_nodes = []
             for j in range(num_cols):
                 x = start_x + j * spacing_x
-                y = 25 + i * spacing_y
+                y = 30 + i * spacing_y
                 
-                # Calculate gradient index based on diagonal position
-                # Bottom left (0,0) is lightest, top right is darkest
-                gradient_progress = (i / (num_rows - 1) + j / (num_cols - 1)) / 2
-                color_index = int(gradient_progress * (len(gradient_colors) - 1))
-                color_index = min(color_index, len(gradient_colors) - 1)
+                # Calculate gradient position (diagonal progression)
+                gradient_progress = (i / (num_rows - 1) * 0.4 + j / (num_cols - 1) * 0.6)
                 
-                # Create circles with uniform size but gradient colors
+                # Select color with smoother interpolation
+                color_index_float = gradient_progress * (len(solana_gradient) - 1)
+                color_index = int(color_index_float)
+                next_color_index = min(color_index + 1, len(solana_gradient) - 1)
+                
+                # Interpolate between colors for smoother gradient
+                t = color_index_float - color_index
+                current_color = solana_gradient[color_index]
+                next_color = solana_gradient[next_color_index]
+                
+                # Manual color interpolation
+                interpolated_color = Color(
+                    current_color.red * (1 - t) + next_color.red * t,
+                    current_color.green * (1 - t) + next_color.green * t,
+                    current_color.blue * (1 - t) + next_color.blue * t
+                )
+                
+                # Vary node sizes for more dynamic look
+                # Larger nodes at key positions
+                if (i == 1 and j == 0) or (i == 0 and j == 3) or (i == 2 and j == 5):
+                    radius = 16  # Accent nodes
+                    opacity = 0.7
+                elif (i + j) % 2 == 0:
+                    radius = 13  # Medium nodes
+                    opacity = 0.6
+                else:
+                    radius = 10  # Small nodes
+                    opacity = 0.5
+                
+                # Create node (circle)
                 circle = Circle(x, y, radius)
-                circle.fillColor = gradient_colors[color_index]
-                circle.fillOpacity = 0.4
-                circle.strokeColor = gradient_colors[min(color_index + 1, len(gradient_colors) - 1)]
-                circle.strokeWidth = 0.5
-                circle.strokeOpacity = 0.3
+                circle.fillColor = interpolated_color
+                circle.fillOpacity = opacity
+                circle.strokeColor = interpolated_color
+                circle.strokeWidth = 1.5
+                circle.strokeOpacity = 0.8
                 d.add(circle)
                 
-                # Add subtle connecting lines
+                # Store node info for connections
+                row_nodes.append((x, y, interpolated_color, radius))
+                
+                # Add inner glow effect for larger nodes
+                if radius >= 13:
+                    inner_circle = Circle(x, y, radius * 0.6)
+                    inner_circle.fillColor = interpolated_color
+                    inner_circle.fillOpacity = 0.3
+                    inner_circle.strokeColor = None
+                    d.add(inner_circle)
+            
+            nodes.append(row_nodes)
+        
+        # Add connecting lines with varying styles
+        for i in range(num_rows):
+            for j in range(num_cols):
+                x, y, color, radius = nodes[i][j]
+                
+                # Horizontal connections
                 if j < num_cols - 1:
-                    line = Line(x + radius, y, x + spacing_x - radius, y)
-                    line.strokeColor = gradient_colors[color_index]
-                    line.strokeWidth = 0.5
-                    line.strokeOpacity = 0.2
+                    next_x, next_y, next_color, next_radius = nodes[i][j + 1]
+                    
+                    # Main connection line
+                    line = Line(x + radius, y, next_x - next_radius, y)
+                    line.strokeColor = color
+                    line.strokeWidth = 1.5 if radius >= 13 else 1.0
+                    line.strokeOpacity = 0.4
+                    line.strokeDashArray = [2, 2] if (i + j) % 3 == 0 else None
                     d.add(line)
                 
+                # Vertical connections
                 if i < num_rows - 1:
-                    line = Line(x, y + radius, x, y + spacing_y - radius)
-                    line.strokeColor = gradient_colors[color_index]
+                    next_x, next_y, next_color, next_radius = nodes[i + 1][j]
+                    
+                    line = Line(x, y + radius, x, next_y - next_radius)
+                    line.strokeColor = color
+                    line.strokeWidth = 1.5 if radius >= 13 else 1.0
+                    line.strokeOpacity = 0.4
+                    line.strokeDashArray = [2, 2] if (i + j) % 3 == 1 else None
+                    d.add(line)
+                
+                # Diagonal connections for visual interest (selective)
+                if i < num_rows - 1 and j < num_cols - 1 and (i + j) % 2 == 0:
+                    next_x, next_y, next_color, next_radius = nodes[i + 1][j + 1]
+                    
+                    line = Line(x + radius * 0.7, y + radius * 0.7, 
+                              next_x - next_radius * 0.7, next_y - next_radius * 0.7)
+                    line.strokeColor = color
                     line.strokeWidth = 0.5
                     line.strokeOpacity = 0.2
+                    line.strokeDashArray = [1, 3]
                     d.add(line)
+        
+        # Add subtle "SOLANA" branding text overlay (optional)
+        # Uncomment if you want to add text branding
+        """
+        from reportlab.graphics.shapes import String
+        brand_text = String(page_width / 2, 5, "SOLANA", 
+                           fontSize=8, 
+                           fontName='Helvetica-Bold',
+                           fillColor=solana_gradient[3],
+                           fillOpacity=0.15,
+                           textAnchor='middle')
+        d.add(brand_text)
+        """
         
         self.story.append(d)
     
@@ -1087,7 +1168,7 @@ class PDFReportGenerator:
                 f"The simulation ran {self.simulation_metadata.get('n_iterations', 'N/A'):,} iterations with a {self.simulation_metadata.get('confidence_level', 0.95)*100:.0f}% confidence level.",
                 f"Processing completed in {runtime_str} with {self.simulation_metadata.get('successful_iterations', 0):,} successful iterations.",
                 "",
-                f"Key findings indicate that quantum computers capable of breaking Solana's Ed25519 cryptography are projected to emerge within {time_to_threat_years:.1f} years, with a 90% confidence range of {confidence_range_start}-{confidence_range_end}.",
+                f"Industry and academic research indicates that quantum computers capable of breaking Solana's Ed25519 cryptography are projected to emerge within {time_to_threat_years:.1f} years, with a 90% confidence range of {confidence_range_start}-{confidence_range_end}.",
                 f"The economic impact analysis shows potential losses ranging from ${min_loss:.0f}B to ${max_loss:.0f}B depending on attack severity and network preparedness.",
                 "",
                 "The following sections detail the simulation methodology, results, and comprehensive risk assessment."
