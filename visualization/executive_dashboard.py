@@ -1,71 +1,81 @@
 """
-Executive dashboard generator for Solana quantum risk simulation.
+Professional Executive Dashboard for Solana Quantum Risk Analysis.
 
-Creates a single-page PDF dashboard with key metrics and visualizations
-suitable for executive presentation.
+Polished, date-aligned version with Q3 2025 as current period.
+Mitigation strategy implementation starts Q1 2026.
 """
 
 import json
 import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
+import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from matplotlib.patches import Rectangle, FancyBboxPatch
+from matplotlib.patches import Rectangle, FancyBboxPatch, Circle, Wedge, Polygon
 from matplotlib.lines import Line2D
+import matplotlib.dates as mdates
 import seaborn as sns
 from scipy import stats
 
-# Configure plotting style
-sns.set_style("whitegrid")
+# Configure plotting style for professional appearance
+plt.style.use('seaborn-v0_8-darkgrid')
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial', 'Helvetica', 'DejaVu Sans']
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
 plt.rcParams['figure.facecolor'] = 'white'
+plt.rcParams['axes.facecolor'] = '#FAFAFA'
+plt.rcParams['grid.alpha'] = 0.3
+plt.rcParams['grid.color'] = '#CCCCCC'
 
 logger = logging.getLogger(__name__)
 
 
 class ExecutiveDashboard:
     """
-    Generates executive-level dashboard visualizations.
+    Creates a polished, professional executive dashboard with accurate date alignment.
     
-    Creates a comprehensive single-page PDF with:
-    - Simulation parameters and convergence status
-    - Risk overview visualizations
-    - Key metrics table
-    - Convergence validation plots
+    Key features:
+    - Current period: Q3 2025
+    - Mitigation start: Q1 2026
+    - Professional visual design
+    - Clear timeline progression
+    - Actionable insights
     """
     
     def __init__(self, results_path: Path, output_dir: Optional[Path] = None):
-        """
-        Initialize dashboard generator.
-        
-        Args:
-            results_path: Path to simulation results JSON
-            output_dir: Output directory for dashboard
-        """
+        """Initialize professional dashboard generator."""
         self.results_path = Path(results_path)
-        self.output_dir = output_dir or self.results_path.parent / "dashboards"
+        self.output_dir = output_dir or self.results_path.parent / "executive_dashboard"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         # Load results
         self._load_results()
         
-        # Color palette (colorblind-friendly)
+        # Current date context (Q3 2025)
+        self.current_date = datetime(2025, 9, 15)  # Mid Q3 2025
+        self.mitigation_start = datetime(2026, 1, 1)  # Q1 2026
+        
+        # Professional color palette
         self.colors = {
-            'primary': '#2E86AB',      # Blue
-            'secondary': '#A23B72',     # Purple
-            'success': '#73AB84',      # Green
-            'warning': '#F18F01',      # Orange
-            'danger': '#C73E1D',        # Red
-            'neutral': '#6C757D',      # Gray
-            'light': '#F8F9FA',        # Light gray
-            'dark': '#212529'          # Dark gray
+            'urgent': '#DC3545',       # Professional red
+            'danger': '#DC3545',       # Professional red (alias)
+            'action': '#28A745',       # Professional green
+            'success': '#28A745',      # Professional green (alias)
+            'warning': '#FFC107',      # Professional amber
+            'primary': '#007BFF',      # Professional blue
+            'secondary': '#6C757D',    # Professional gray
+            'neutral': '#6C757D',      # Professional gray (alias)
+            'info': '#17A2B8',        # Professional cyan
+            'light': '#F8F9FA',       # Light gray
+            'dark': '#212529',        # Dark gray
+            'solana_green': '#00FFA3',  # Solana brand
+            'solana_purple': '#9945FF', # Solana brand
+            'background': '#FFFFFF'    # White background
         }
     
     def _load_results(self) -> None:
@@ -80,23 +90,16 @@ class ExecutiveDashboard:
     
     def generate_dashboard(
         self,
-        title: str = "Solana Quantum Risk Analysis",
-        subtitle: str = "Executive Summary Dashboard",
+        title: str = "SOLANA QUANTUM RISK ASSESSMENT",
+        subtitle: str = "Executive Decision Dashboard - Q3 2025",
         filename: str = "executive_dashboard.pdf"
     ) -> Path:
         """
-        Generate the complete executive dashboard.
-        
-        Args:
-            title: Main dashboard title
-            subtitle: Dashboard subtitle
-            filename: Output filename
-            
-        Returns:
-            Path to generated dashboard PDF
+        Generate professional executive dashboard with proper date alignment.
         """
-        # Create figure with custom layout
-        fig = plt.figure(figsize=(17, 11))  # Landscape A3-like format
+        # Create figure with refined layout
+        fig = plt.figure(figsize=(22, 14))
+        fig.patch.set_facecolor(self.colors['background'])
         
         # Create grid layout
         gs = gridspec.GridSpec(
@@ -687,6 +690,9 @@ def main():
     
     # Find latest results file
     results_files = list(args.results_dir.glob('**/simulation_results*.json'))
+    if not results_files:
+        results_files = list(args.results_dir.glob('**/analysis_summary.json'))
+    
     if not results_files:
         logger.error(f"No results found in {args.results_dir}")
         return

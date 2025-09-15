@@ -11,6 +11,15 @@ This Monte Carlo simulation models the probabilistic impact of quantum computing
 3. **What are the economic consequences?** - Direct losses, market crashes, and recovery trajectories
 4. **How effective is migration to quantum-safe cryptography?** - Impact of proactive vs. reactive migration strategies
 
+## ⚠️ Work In Progress Notice
+
+**IMPORTANT**: The visualization components (Executive Dashboard and Technical Plots) are currently in a **Work In Progress** stage and are not yet ready for production use. They are being refined for:
+- Professional visual Enhancement
+- Consistent data presentation
+- Executive-ready formatting
+
+Please use the numerical results and reports for decision-making while the visual components are being finalized.
+
 ## 📊 Key Economic Findings
 
 **⚠️ IMPORTANT**: All calculations follow standardized methodology documented in **[docs/economic_calculations.md](docs/economic_calculations.md)**
