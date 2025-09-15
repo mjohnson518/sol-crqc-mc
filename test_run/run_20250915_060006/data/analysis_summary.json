@@ -1,0 +1,90 @@
+{
+  "statistics": {
+    "economic_losses": {
+      "mean": 33369968391.276157,
+      "median": 35485732195.19733,
+      "std": 14906202519.730494,
+      "var": 2.221948735592197e+20,
+      "min": 4988271233.827479,
+      "max": 50280856242.54724,
+      "percentiles": {
+        "1": 5627873279.995691,
+        "5": 7908887331.062098,
+        "10": 10474821217.031868,
+        "25": 25844949478.0477,
+        "50": 35485732195.19733,
+        "75": 47420867243.013115,
+        "90": 50199440475.02321,
+        "95": 50218253660.802345,
+        "99": 50279127360.128845
+      },
+      "skewness": -0.37367238888361975,
+      "kurtosis": -1.1521118153286805,
+      "confidence_interval": "(28891649377.923832, 37848287404.62848)",
+      "sample_size": "45"
+    }
+  },
+  "risk_metrics": {
+    "risk_score": 67.76058664280183,
+    "risk_level": {
+      "_value_": "High",
+      "_name_": "HIGH",
+      "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x10229e710>, '__module__': 'analysis.risk_assessment', '__doc__': 'Risk level categories.', '_member_names_': ['CRITICAL', 'HIGH', 'MODERATE', 'LOW', 'MINIMAL'], '_member_map_': {'CRITICAL': <RiskLevel.CRITICAL: 'Critical'>, 'HIGH': <RiskLevel.HIGH: 'High'>, 'MODERATE': <RiskLevel.MODERATE: 'Moderate'>, 'LOW': <RiskLevel.LOW: 'Low'>, 'MINIMAL': <RiskLevel.MINIMAL: 'Minimal'>}, '_member_type_': <class 'object'>, '_value2member_map_': {'Critical': <RiskLevel.CRITICAL: 'Critical'>, 'High': <RiskLevel.HIGH: 'High'>, 'Moderate': <RiskLevel.MODERATE: 'Moderate'>, 'Low': <RiskLevel.LOW: 'Low'>, 'Minimal': <RiskLevel.MINIMAL: 'Minimal'>}, 'CRITICAL': <RiskLevel.CRITICAL: 'Critical'>, 'HIGH': <RiskLevel.HIGH: 'High'>, 'MODERATE': <RiskLevel.MODERATE: 'Moderate'>, 'LOW': <RiskLevel.LOW: 'Low'>, 'MINIMAL': <RiskLevel.MINIMAL: 'Minimal'>, '__new__': <function Enum.__new__ at 0x10229e680>}"
+    },
+    "probability": 0.9113156697765175,
+    "impact": "0.38446067723780697",
+    "time_horizon": "3.4444444444443434",
+    "confidence": "0.85"
+  },
+  "raw_data": {
+    "crqc_years": [],
+    "economic_losses": [
+      25199062385.889194,
+      50175104879.01523,
+      47190944189.29771,
+      50186649081.048096,
+      47129116712.630135,
+      50219744478.01922,
+      17257275321.595142,
+      6441912247.846142,
+      25844949478.0477,
+      35648310174.74466,
+      14975966157.124718,
+      47420867243.013115,
+      14969423873.331007,
+      50280856242.54724,
+      25848576388.474796,
+      47370192808.104744,
+      50193752323.362526,
+      36138355205.226105,
+      47449274246.26218,
+      7908938759.299315,
+      7908874474.002793,
+      30193261000.341488,
+      25850957484.6629,
+      4988271233.827479,
+      36444844824.65559,
+      7908973793.746389,
+      14323592351.960077,
+      47221881735.46559,
+      50212290391.934845,
+      25845093831.330772,
+      35485732195.19733,
+      50185420530.90835,
+      14970132403.0484,
+      29709246876.888573,
+      36465074081.04018,
+      50276926964.323616,
+      30130649765.85299,
+      50203232576.13033,
+      28933918820.201717,
+      30363791392.067013,
+      25845129159.26717,
+      47123770620.57299,
+      47186009651.99302,
+      25847771217.177956,
+      50174458035.95058
+    ],
+    "attack_success_rates": []
+  }
+}
