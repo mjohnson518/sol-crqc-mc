@@ -1044,6 +1044,24 @@ class PDFReportGenerator:
             else:
                 runtime_str = f"{runtime:.1f} seconds"
             
+            # Extract actual economic loss values from parsed sections if available
+            min_loss = 48.9  # Default fallback (0.5x direct risk)
+            max_loss = 293.4  # Default fallback (3x direct risk)
+            
+            # Try to find actual values from the economic impact section
+            for section in sections:
+                if 'economic' in section.get('title', '').lower() and 'impact' in section.get('title', '').lower():
+                    content_text = '\n'.join(section.get('content', []))
+                    # Look for best-case and worst-case values
+                    import re
+                    best_case_match = re.search(r'Best-Case[^$]*\$([0-9.]+)\s*[BM]illion', content_text, re.IGNORECASE)
+                    worst_case_match = re.search(r'Worst-Case[^$]*\$([0-9.]+)\s*[BM]illion', content_text, re.IGNORECASE)
+                    if best_case_match:
+                        min_loss = float(best_case_match.group(1))
+                    if worst_case_match:
+                        max_loss = float(worst_case_match.group(1))
+                    break
+            
             default_content = [
                 "This technical appendix provides detailed results from the Monte Carlo simulation assessing quantum computing threats to the Solana blockchain.",
                 "",
@@ -1051,7 +1069,7 @@ class PDFReportGenerator:
                 f"Processing completed in {runtime_str} with {self.simulation_metadata.get('successful_iterations', 0):,} successful iterations.",
                 "",
                 "Key findings indicate that quantum computers capable of breaking Solana's Ed25519 cryptography are projected to emerge between 2028-2033.",
-                "The economic impact analysis shows potential losses ranging from $6B to $85B depending on attack severity and network preparedness.",
+                f"The economic impact analysis shows potential losses ranging from ${min_loss:.0f}B to ${max_loss:.0f}B depending on attack severity and network preparedness.",
                 "",
                 "The following sections detail the simulation methodology, results, and comprehensive risk assessment."
             ]
