@@ -223,7 +223,7 @@ class EconomicImpactModel:
             stablecoin_loss = self._calculate_stablecoin_impact(
                 rng, attack_scenario, network_snapshot
             )
-            if stablecoin_loss.amount > 0:
+            if stablecoin_loss.amount_usd > 0:
                 components.append(stablecoin_loss)
         
         # 5. Reputation damage
@@ -489,6 +489,16 @@ class EconomicImpactModel:
         network_snapshot: NetworkSnapshot
     ) -> ImpactComponent:
         """Calculate impact from stablecoin vulnerabilities."""
+        
+        # Check if we have a valid year
+        if not network_snapshot.year:
+            return ImpactComponent(
+                impact_type=ImpactType.DIRECT_LOSS,
+                amount_usd=0,
+                percentage_of_tvl=0,
+                time_to_realize_days=0,
+                confidence_interval=(0, 0)
+            )
         
         # Check if attacker can break Ed25519 (need ~2330 logical qubits)
         if network_snapshot.year < 2027:  # Too early for quantum attacks
