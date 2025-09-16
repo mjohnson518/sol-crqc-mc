@@ -338,8 +338,15 @@ def generate_reports(results: dict, analysis: dict, output_dir: Path, sim_config
         'iterations_requested': sim_config.n_iterations
     })
     
+    # Merge analysis data into results for report generation
+    report_data = {
+        **analysis,
+        'metadata': results.get('metadata', {}),
+        'n_iterations': results.get('metadata', {}).get('total_iterations', 100)
+    }
+    
     md_report = generator.generate_report(
-        results,
+        report_data,
         risk_metrics=analysis.get('risk_metrics'),
         output_path=reports_dir / "simulation_report.md"
     )

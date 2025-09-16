@@ -156,7 +156,13 @@ class ReportGenerator:
         
         # Simulation overview
         metadata = results.get('metadata', {})
-        n_iterations = metadata.get('successful_iterations', results.get('n_iterations', 100))
+        # Try multiple places for iteration count
+        n_iterations = (
+            metadata.get('successful_iterations') or 
+            metadata.get('total_iterations') or
+            results.get('statistics', {}).get('total_simulations') or
+            results.get('n_iterations', 100)
+        )
         
         # Get network and economic parameters from config
         config = metadata.get('config', {})
