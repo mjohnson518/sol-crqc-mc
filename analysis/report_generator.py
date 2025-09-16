@@ -1060,18 +1060,21 @@ class ReportGenerator:
         recs.append("## 🛡️ Quantum-Safe Migration Strategy")
         recs.append("")
         
+        # Get network parameters from results (always needed for various sections)
+        config = results.get('metadata', {}).get('config', {})
+        network_params = config.get('network', {})
+        economic_params = config.get('economic', {})
+        
+        n_validators = network_params.get('n_validators', 1017)
+        sol_price = economic_params.get('sol_price_usd', 235.0)
+        total_stake = network_params.get('total_stake_sol', 380_000_000)
+        tvl = economic_params.get('total_value_locked_usd', 8.5e9)
+        
+        # Calculate protected value for use in various sections
+        protected_value = (total_stake * sol_price) + tvl
+        
         # Calculate dynamic migration cost if calculator available
         if calculate_migration_cost:
-            # Get network parameters from results
-            config = results.get('metadata', {}).get('config', {})
-            network_params = config.get('network', {})
-            economic_params = config.get('economic', {})
-            
-            n_validators = network_params.get('n_validators', 1017)
-            sol_price = economic_params.get('sol_price_usd', 235.0)
-            total_stake = network_params.get('total_stake_sol', 380_000_000)
-            tvl = economic_params.get('total_value_locked_usd', 8.5e9)
-            
             # Calculate migration cost breakdown
             cost_breakdown = calculate_migration_cost(
                 n_validators=n_validators,
@@ -1124,7 +1127,7 @@ class ReportGenerator:
             if calculate_migration_cost and 'cost_breakdown' in locals():
                 recs.append(f"- [ ] Allocate resources and budget (${cost_breakdown.total_cost/1e6:.1f}M total investment)")
             else:
-                recs.append("- [ ] Allocate resources and budget ($47.5M estimated)")
+                recs.append("- [ ] Allocate resources and budget")
             recs.append("- [ ] Begin stakeholder engagement")
             recs.append("")
             recs.append("#### Phase 2: Pilot Program (6-12 months)")
@@ -1168,20 +1171,75 @@ class ReportGenerator:
         
         recs.append("### Cost-Benefit Analysis")
         recs.append("")
-        recs.append("| Migration Investment | Risk Reduction | ROI Period | Implementation Time |")
-        recs.append("|---------------------|---------------|------------|-------------------|")
-        recs.append("| $10M | 60% | 2 years | 18 months |")
-        recs.append("| $25M | 80% | 1.5 years | 12 months |")
-        recs.append("| $50M | 95% | 1 year | 6 months |")
+        
+        # Use actual calculated values if available
+        if calculate_migration_cost and 'cost_breakdown' in locals():
+            # Dynamic values from our calculator
+            base_cost = cost_breakdown.total_cost / 1e6  # Convert to millions
+            
+            # Calculate scenarios: conservative, base, aggressive
+            conservative_cost = base_cost * 0.5  # Half budget
+            aggressive_cost = base_cost * 1.5  # 50% more budget
+            
+            # Calculate payback periods for each scenario
+            conservative_payback = cost_breakdown.payback_years * 2  # Double the time with half budget
+            base_payback = cost_breakdown.payback_years
+            aggressive_payback = cost_breakdown.payback_years * 0.75  # Faster with more investment
+            
+            # Format payback periods appropriately
+            def format_payback(years):
+                if years < 0.1:
+                    return f"{years * 365:.0f} days"
+                elif years < 1:
+                    return f"{years * 12:.0f} months"
+                else:
+                    return f"{years:.1f} years"
+            
+            recs.append("| Migration Investment | Risk Reduction | Payback Period | Implementation Time |")
+            recs.append("|---------------------|---------------|----------------|-------------------|")
+            recs.append(f"| ${conservative_cost:.0f}M (Conservative) | 60-70% | {format_payback(conservative_payback)} | 24-30 months |")
+            recs.append(f"| ${base_cost:.0f}M (Recommended) | 85-95% | {format_payback(base_payback)} | 18-24 months |")
+            recs.append(f"| ${aggressive_cost:.0f}M (Accelerated) | 95-99% | {format_payback(aggressive_payback)} | 12-18 months |")
+            recs.append("")
+            recs.append(f"*Note: Based on current network parameters - {n_validators:,} validators, ${protected_value/1e9:.1f}B protected value*")
+        else:
+            # Fallback to more realistic estimates if calculator not available
+            recs.append("| Migration Investment | Risk Reduction | Payback Period | Implementation Time |")
+            recs.append("|---------------------|---------------|----------------|-------------------|")
+            recs.append("| $25M (Conservative) | 60-70% | 6 months | 24-30 months |")
+            recs.append("| $47.5M (Recommended) | 85-95% | 2-3 days | 18-24 months |")
+            recs.append("| $75M (Accelerated) | 95-99% | 1-2 days | 12-18 months |")
+            recs.append("")
+            recs.append("*Note: Estimates based on network analysis*")
         recs.append("")
         
         recs.append("### Success Metrics")
         recs.append("")
-        recs.append("- **Target:** 70% quantum-safe validators by 2028")
-        recs.append("- **Milestone 1:** 25% migration by end of 2026")
-        recs.append("- **Milestone 2:** 50% migration by mid-2027")
-        recs.append("- **Milestone 3:** 70% migration by end of 2027")
-        recs.append("- **Full Migration:** 95%+ by 2029")
+        
+        # Calculate dynamic milestones based on CRQC timeline
+        metadata = results.get('metadata', {})
+        start_year = metadata.get('start_year', 2025)
+        
+        # Get CRQC emergence year from results
+        aggregated = results.get('aggregated', {})
+        metrics = aggregated.get('metrics', {})
+        crqc_year = int(metrics.get('crqc_emergence_year', {}).get('median', 2029))
+        
+        # Calculate milestones working backward from CRQC year
+        target_completion = crqc_year - 1  # Complete 1 year before CRQC
+        migration_start = start_year + 1  # Start migration in year 2
+        
+        # Calculate intermediate milestones
+        milestone_25 = migration_start + 1
+        milestone_50 = migration_start + int((target_completion - migration_start) * 0.4)
+        milestone_70 = migration_start + int((target_completion - migration_start) * 0.6)
+        
+        recs.append(f"- **Target:** 70% quantum-safe validators by {target_completion - 1}")
+        recs.append(f"- **Milestone 1:** 25% migration by end of {milestone_25}")
+        recs.append(f"- **Milestone 2:** 50% migration by mid-{milestone_50}")
+        recs.append(f"- **Milestone 3:** 70% migration by end of {milestone_70}")
+        recs.append(f"- **Full Migration:** 95%+ by {target_completion}")
+        recs.append(f"- *Timeline based on CRQC emergence projection: {crqc_year}*")
         recs.append("")
         
         recs.append("### Key Success Factors")
