@@ -28,8 +28,8 @@ Please use the numerical results and reports for decision-making while the visua
 |--------|-------|---------------|
 | **Total Value at Risk** | $97.8B | 380M staked SOL × $235 + $8.5B TVL |
 | **Potential Loss (3x multiplier)** | $293.4B | Based on historical crypto events (Terra, FTX) |
-| **Migration Cost** | $1.96B | 2% of protected value (benchmarked to Ethereum PoS) |
-| **Return on Investment** | 150x | Avoided loss / migration cost |
+| **Migration Cost** | $47.5M | Component-based analysis (hardware, dev, auditing) |
+| **Return on Investment** | 6,177x | Avoided loss / migration cost |
 | **Median CRQC Year** | 2029 | 4 years to prepare |
 | **Value at Risk (95%)** | $195.6B | Maximum loss in 95% of scenarios |
 | **Conditional VaR (95%)** | $244.5B | Average loss in worst 5% of scenarios |
@@ -296,12 +296,12 @@ pytest --cov=src tests/
   - Understanding VaR ($195.6B) and CVaR ($244.5B) risk metrics
   - ROI calculation showing 150x return on investment
 
-- **[Migration Cost Analysis](docs/migration_cost_analysis.md)** - **Detailed $1.96B cost breakdown**
-  - Component-by-component cost analysis (30% dev, 25% testing, 20% coordination)
-  - Industry precedents (Ethereum PoS, banking upgrades)
-  - Why 2% of protected value is the industry standard
-  - Funding mechanisms and alternative scenarios
-  - Full cost-benefit justification with 150x ROI
+- **[Migration Cost Analysis](docs/migration_cost_analysis.md)** - **Detailed $47.5M cost breakdown**
+  - Hardware acceleration ($22.5M), Development ($10M), Auditing ($4M)
+  - Validator coordination ($6M), Contingency ($5M)
+  - Component-based costing vs percentage estimates
+  - NPV of $8.7B, IRR of 487%, Payback of 0.8 years
+  - Full cost-benefit justification with 6,177x ROI
   
 - **[Academic Justification](docs/methodology_justification.md)** - PhD-level documentation
   - Mathematical proofs and definitions

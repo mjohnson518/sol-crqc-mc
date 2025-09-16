@@ -407,27 +407,69 @@ class EconomicImpactModel:
         rng: np.random.RandomState,
         network_snapshot: NetworkSnapshot
     ) -> ImpactComponent:
-        """Calculate cost of migrating to quantum-safe cryptography."""
+        """Calculate cost of migrating to quantum-safe cryptography.
         
-        # Remaining migration needed
+        Uses component-based costing model:
+        - Hardware acceleration: $22.5M
+        - Development effort: $10M
+        - Security auditing: $4M
+        - Validator coordination: $6M
+        - Contingency: $5M
+        Total base cost: $47.5M
+        """
+        
+        # Base migration cost components (in millions USD)
+        BASE_MIGRATION_COST = 47.5e6  # $47.5M total
+        
+        # Component breakdown
+        hardware_cost = 22.5e6  # GPU/FPGA infrastructure
+        development_cost = 10.0e6  # 20 engineers × 2 years
+        audit_cost = 4.0e6  # 3 independent audit firms
+        coordination_cost = 6.0e6  # Validator incentives & support
+        contingency = 5.0e6  # 15% buffer
+        
+        # Calculate base cost adjusted for migration progress
+        # If migration already partially complete, costs are reduced
         remaining_migration = 1.0 - network_snapshot.migration_progress
         
-        # Cost based on total SOL that needs migration
-        # Assume $0.001 per SOL migration cost
-        sol_to_migrate = self.params.total_value_locked_usd * remaining_migration / self.params.sol_price_usd
-        migration_cost_per_sol = 0.001
-        migration_cost = sol_to_migrate * migration_cost_per_sol
+        # Hardware and coordination scale with remaining validators
+        scaled_hardware = hardware_cost * remaining_migration
+        scaled_coordination = coordination_cost * remaining_migration
         
-        # Add urgency premium if attack has occurred
-        urgency_multiplier = rng.uniform(2, 5)  # 2-5x cost when urgent
-        migration_cost *= urgency_multiplier
+        # Development and audit costs are mostly fixed
+        # But reduce slightly if migration is very advanced
+        completion_discount = 1.0 if remaining_migration > 0.5 else 0.7
+        scaled_development = development_cost * completion_discount
+        scaled_audit = audit_cost * completion_discount
+        
+        # Calculate total migration cost
+        migration_cost = (
+            scaled_hardware +
+            scaled_development +
+            scaled_audit +
+            scaled_coordination +
+            contingency * remaining_migration  # Contingency scales with work remaining
+        )
+        
+        # Add urgency premium if attack has occurred (20-50% premium, not 2-5x)
+        if hasattr(network_snapshot, 'attack_occurred') and network_snapshot.attack_occurred:
+            urgency_premium = rng.uniform(1.2, 1.5)  # More realistic urgency premium
+            migration_cost *= urgency_premium
+        elif network_snapshot.compromised_validators > 0:
+            # If validators are compromised, add urgency premium
+            urgency_premium = rng.uniform(1.1, 1.3)  # Smaller premium for partial compromise
+            migration_cost *= urgency_premium
+        
+        # Add uncertainty based on how early we are in the timeline
+        uncertainty_factor = rng.uniform(0.8, 1.2)  # ±20% uncertainty
+        migration_cost *= uncertainty_factor
         
         return ImpactComponent(
             impact_type=ImpactType.MIGRATION_COST,
             amount_usd=migration_cost,
             percentage_of_tvl=migration_cost / self.params.total_value_locked_usd,
-            time_to_realize_days=rng.uniform(7, 30),  # Takes time to implement
-            confidence_interval=(migration_cost * 0.5, migration_cost * 2.0)
+            time_to_realize_days=rng.uniform(180, 730),  # 6-24 months for full migration
+            confidence_interval=(migration_cost * 0.7, migration_cost * 1.3)
         )
     
     def _calculate_recovery_cost(

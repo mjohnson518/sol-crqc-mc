@@ -18,8 +18,8 @@ This document provides detailed explanations for all parameters used in the Sola
 ### Economic Impact Calculation
 - **Direct Risk**: (380M SOL × $235) + $8.5B TVL = **$97.8B**
 - **With Market Impact (3x)**: $97.8B × 3 = **$293.4B potential loss**
-- **Migration Cost (2% of protected value)**: $97.8B × 0.02 = **$1.96B**
-- **ROI of Migration**: $293.4B / $1.96B = **~150x**
+- **Migration Cost (component-based)**: Hardware + Dev + Audit + Coordination = **$47.5M**
+- **ROI of Migration**: $293.4B / $47.5M = **~6,177x**
 
 ## Table of Contents
 
