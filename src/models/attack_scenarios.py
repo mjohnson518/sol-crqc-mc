@@ -46,6 +46,15 @@ class AttackSeverity(Enum):
     CRITICAL = "critical"  # Systemic failure, may be unrecoverable
 
 
+class AttackerProfile(Enum):
+    """Types of quantum attackers with different motivations."""
+    PROFIT_DRIVEN = "profit"           # Criminal: maximize financial gain
+    NATION_STATE = "nation_state"      # Strategic: destabilize economy
+    CHAOS_AGENT = "chaos"              # Anarchist: maximum disruption
+    DEMONSTRATOR = "demonstrator"      # Researcher: prove vulnerability
+    COMPETITOR = "competitor"          # Rival chain: damage Solana
+
+
 @dataclass
 class AttackScenario:
     """Represents a specific attack scenario."""
@@ -61,6 +70,9 @@ class AttackScenario:
     time_to_execute: float  # Hours
     detection_probability: float
     mitigation_possible: bool
+    attacker_profile: AttackerProfile = AttackerProfile.PROFIT_DRIVEN
+    attribution_difficulty: float = 0.5  # 0-1, how hard to attribute
+    strategic_value: float = 1.0  # Multiplier for nation-state attacks
     
     @property
     def impact_score(self) -> float:
@@ -306,6 +318,17 @@ class AttackScenariosModel:
     ) -> AttackScenario:
         """Generate a specific attack scenario."""
         
+        # Determine attacker profile (30% nation-state, 60% profit, 10% other)
+        profile_prob = rng.random()
+        if profile_prob < 0.3:
+            attacker_profile = AttackerProfile.NATION_STATE
+        elif profile_prob < 0.9:
+            attacker_profile = AttackerProfile.PROFIT_DRIVEN
+        elif profile_prob < 0.95:
+            attacker_profile = AttackerProfile.CHAOS_AGENT
+        else:
+            attacker_profile = AttackerProfile.DEMONSTRATOR
+        
         # Calculate success probability
         success_prob = self._calculate_success_probability(
             attack_type,
@@ -313,12 +336,33 @@ class AttackScenariosModel:
             network
         )
         
+        # Adjust for attacker profile
+        if attacker_profile == AttackerProfile.NATION_STATE:
+            success_prob *= 1.2  # Better resources
+            strategic_value = 3.0  # High strategic value
+            attribution_difficulty = 0.8  # Hard to attribute
+        elif attacker_profile == AttackerProfile.CHAOS_AGENT:
+            strategic_value = 2.0  # Chaos has value
+            attribution_difficulty = 0.6
+        else:
+            strategic_value = 1.0
+            attribution_difficulty = 0.3  # Easier to track criminals
+        
+        success_prob = min(0.99, success_prob)
+        
         # Determine validators compromised
         validators_compromised = self._calculate_validators_compromised(
             rng,
             attack_type,
             network
         )
+        
+        # Nation-states might target more validators for systemic impact
+        if attacker_profile == AttackerProfile.NATION_STATE:
+            validators_compromised = min(
+                int(validators_compromised * 1.5),
+                network.n_validators
+            )
         
         # Calculate stake compromised
         stake_compromised = self._calculate_stake_compromised(
@@ -343,6 +387,10 @@ class AttackScenariosModel:
         
         # Detection probability
         detection_prob = self.detection_rates[attack_type]
+        
+        # Nation-states better at avoiding detection
+        if attacker_profile == AttackerProfile.NATION_STATE:
+            detection_prob *= 0.5
         
         # Adjust for network monitoring improvements over time
         years_elapsed = network.year - 2025
@@ -369,7 +417,10 @@ class AttackScenariosModel:
             accounts_at_risk=accounts_at_risk,
             time_to_execute=execution_time,
             detection_probability=detection_prob,
-            mitigation_possible=mitigation
+            mitigation_possible=mitigation,
+            attacker_profile=attacker_profile,
+            attribution_difficulty=attribution_difficulty,
+            strategic_value=strategic_value
         )
     
     def _calculate_success_probability(

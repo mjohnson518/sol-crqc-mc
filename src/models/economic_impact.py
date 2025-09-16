@@ -14,9 +14,10 @@ from enum import Enum
 import math
 
 from src.config import EconomicParameters
-from src.models.attack_scenarios import AttackScenario, AttackType, AttackSeverity
+from src.models.attack_scenarios import AttackScenario, AttackType, AttackSeverity, AttackerProfile
 from src.models.network_state import NetworkSnapshot
 from src.distributions.probability_dists import EconomicDistributions
+from src.models.stablecoin_vulnerability import StablecoinVulnerabilityModel
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +158,7 @@ class EconomicImpactModel:
             params: Economic parameters configuration
         """
         self.params = params or EconomicParameters()
+        self.stablecoin_model = StablecoinVulnerabilityModel()
         
         # Impact multipliers by attack type
         self.attack_impact_multipliers = {
@@ -216,15 +218,23 @@ class EconomicImpactModel:
         defi_loss = self._calculate_defi_cascade(rng, attack_scenario, market_reaction)
         components.append(defi_loss)
         
-        # 4. Reputation damage
+        # 4. Stablecoin vulnerability impact (if quantum capable)
+        if hasattr(attack_scenario, 'attacker_profile'):
+            stablecoin_loss = self._calculate_stablecoin_impact(
+                rng, attack_scenario, network_snapshot
+            )
+            if stablecoin_loss.amount > 0:
+                components.append(stablecoin_loss)
+        
+        # 5. Reputation damage
         reputation_loss = self._calculate_reputation_damage(rng, attack_scenario)
         components.append(reputation_loss)
         
-        # 5. Migration costs
+        # 6. Migration costs
         migration_cost = self._calculate_migration_cost(rng, network_snapshot)
         components.append(migration_cost)
         
-        # 6. Recovery costs
+        # 7. Recovery costs
         recovery_cost = self._calculate_recovery_cost(rng, attack_scenario, components)
         components.append(recovery_cost)
         
@@ -470,6 +480,82 @@ class EconomicImpactModel:
             percentage_of_tvl=migration_cost / self.params.total_value_locked_usd,
             time_to_realize_days=rng.uniform(180, 730),  # 6-24 months for full migration
             confidence_interval=(migration_cost * 0.7, migration_cost * 1.3)
+        )
+    
+    def _calculate_stablecoin_impact(
+        self,
+        rng: np.random.RandomState,
+        attack_scenario: AttackScenario,
+        network_snapshot: NetworkSnapshot
+    ) -> ImpactComponent:
+        """Calculate impact from stablecoin vulnerabilities."""
+        
+        # Check if attacker can break Ed25519 (need ~2330 logical qubits)
+        if network_snapshot.year < 2028:  # Too early for quantum attacks
+            return ImpactComponent(
+                impact_type=ImpactType.DIRECT_LOSS,
+                amount_usd=0,
+                percentage_of_tvl=0,
+                time_to_realize_days=0,
+                confidence_interval=(0, 0)
+            )
+        
+        # Estimate quantum capability (simplified)
+        years_from_2025 = network_snapshot.year - 2025
+        estimated_qubits = 1000 * (1.5 ** years_from_2025)  # Exponential growth
+        
+        if estimated_qubits < 2330:  # Not enough qubits
+            return ImpactComponent(
+                impact_type=ImpactType.DIRECT_LOSS,
+                amount_usd=0,
+                percentage_of_tvl=0,
+                time_to_realize_days=0,
+                confidence_interval=(0, 0)
+            )
+        
+        # Determine attacker motivation
+        attacker_motivation = "profit"
+        if hasattr(attack_scenario, 'attacker_profile'):
+            if attack_scenario.attacker_profile == AttackerProfile.NATION_STATE:
+                attacker_motivation = "destabilize"
+            elif attack_scenario.attacker_profile == AttackerProfile.CHAOS_AGENT:
+                attacker_motivation = "destabilize"
+        
+        # Assess stablecoin vulnerabilities
+        scenarios = self.stablecoin_model.assess_vulnerability(
+            int(estimated_qubits),
+            attacker_motivation
+        )
+        
+        if not scenarios:
+            return ImpactComponent(
+                impact_type=ImpactType.DIRECT_LOSS,
+                amount_usd=0,
+                percentage_of_tvl=0,
+                time_to_realize_days=0,
+                confidence_interval=(0, 0)
+            )
+        
+        # For nation-states, might target USDC for maximum impact
+        if attacker_motivation == "destabilize" and "USDC" in scenarios:
+            primary_target = scenarios["USDC"]
+        else:
+            # Pick most valuable target
+            primary_target = max(scenarios.values(), 
+                                key=lambda s: s.total_economic_impact())
+        
+        # Calculate total impact including cascades
+        total_impact = primary_target.total_economic_impact()
+        
+        # Add randomness
+        total_impact *= rng.uniform(0.8, 1.2)
+        
+        return ImpactComponent(
+            impact_type=ImpactType.DEFI_CASCADE,  # Stablecoin failure cascades
+            amount_usd=total_impact,
+            percentage_of_tvl=total_impact / self.params.total_value_locked_usd,
+            time_to_realize_days=rng.uniform(0.1, 1),  # Very fast cascade
+            confidence_interval=(total_impact * 0.5, total_impact * 2.0)
         )
     
     def _calculate_recovery_cost(
