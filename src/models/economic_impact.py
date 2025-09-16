@@ -491,7 +491,7 @@ class EconomicImpactModel:
         """Calculate impact from stablecoin vulnerabilities."""
         
         # Check if attacker can break Ed25519 (need ~2330 logical qubits)
-        if network_snapshot.year < 2028:  # Too early for quantum attacks
+        if network_snapshot.year < 2027:  # Too early for quantum attacks
             return ImpactComponent(
                 impact_type=ImpactType.DIRECT_LOSS,
                 amount_usd=0,
