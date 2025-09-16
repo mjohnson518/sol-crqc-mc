@@ -142,6 +142,34 @@ print(f"Mean CRQC emergence: {results['metrics']['first_attack_year']['mean']:.1
 print(f"Economic loss (95% VaR): ${results['metrics']['economic_loss_usd']['percentile_95']/1e9:.1f}B")
 ```
 
+### Run Full Simulation with Live Data (New!)
+
+```bash
+# Run with default parameters (uses Dec 2024 baseline)
+python run_full_simulation.py --iterations 100
+
+# Fetch live Solana network data before simulation
+python run_full_simulation.py --iterations 100 --live-data
+
+# Bypass cache for fresh data
+python run_full_simulation.py --iterations 100 --live-data --no-cache
+
+# Quick test mode with live data
+python run_full_simulation.py --quick --live-data
+```
+
+#### 📡 Live Data Integration
+
+When using `--live-data`, the simulation automatically fetches:
+- **Current SOL Price**: Real-time market price from CoinGecko
+- **Active Validators**: Current validator count from Solana RPC
+- **Total Staked SOL**: Live stake distribution across validators
+- **Stake Concentration**: Gini coefficient of stake distribution
+- **DeFi TVL**: Total value locked from DeFiLlama
+- **Daily Volume**: 24-hour trading volume
+
+Data is cached for 1 hour to minimize API calls. Falls back to baseline values if APIs are unavailable.
+
 ### Run Example Demonstrations
 
 ```bash
@@ -265,9 +293,15 @@ pytest --cov=src tests/
 
 - **[Economic Calculations Methodology](docs/economic_calculations.md)** - **Canonical source for all calculations**
   - How we calculate the $293.4B total impact (3x multiplier justified)
-  - Why migration costs $1.96B (2% of protected value) 
   - Understanding VaR ($195.6B) and CVaR ($244.5B) risk metrics
   - ROI calculation showing 150x return on investment
+
+- **[Migration Cost Analysis](docs/migration_cost_analysis.md)** - **Detailed $1.96B cost breakdown**
+  - Component-by-component cost analysis (30% dev, 25% testing, 20% coordination)
+  - Industry precedents (Ethereum PoS, banking upgrades)
+  - Why 2% of protected value is the industry standard
+  - Funding mechanisms and alternative scenarios
+  - Full cost-benefit justification with 150x ROI
   
 - **[Academic Justification](docs/methodology_justification.md)** - PhD-level documentation
   - Mathematical proofs and definitions

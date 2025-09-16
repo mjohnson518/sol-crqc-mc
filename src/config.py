@@ -55,8 +55,8 @@ class QuantumParameters:
 class NetworkParameters:
     """Parameters describing the Solana network state and characteristics."""
     
-    # Validator network
-    n_validators: int = 1950  # Current number of validators (Solana Beach Dec 2024)
+    # Validator network  
+    n_validators: int = 1017  # Current number of validators from Solana Beach
     total_stake_sol: float = 380_000_000  # Total staked SOL
     stake_gini_coefficient: float = 0.82  # Stake concentration metric
     

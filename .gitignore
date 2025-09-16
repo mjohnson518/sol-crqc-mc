@@ -52,6 +52,8 @@ htmlcov/
 docs/_build/
 
 # Output data
+data/
+network_data_cache.json
 data/output/results/
 data/output/figures/*.png
 data/output/figures/*.pdf

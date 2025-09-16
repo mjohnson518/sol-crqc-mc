@@ -1,5 +1,5 @@
 """
-Appendix 2 for Quantum Risk Assessment
+Appendix B for Quantum Risk Assessment
 
 Generates quality supplementary technical documentation with
 embedded visualizations, statistical distributions, and detailed simulation results.
@@ -451,7 +451,7 @@ class PDFReportGenerator:
             textColor=QUANTUM_COLORS['solana_blue']
         )
         title = Paragraph(
-            "<b>APPENDIX 2</b>",
+            "<b>APPENDIX B</b>",
             title_style
         )
         self.story.append(title)
@@ -496,7 +496,8 @@ class PDFReportGenerator:
             ['Total Iterations', f'{total_iterations:,}'],
             ['Successful Runs', f'{successful:,} ({successful/total_iterations*100:.1f}%)' if total_iterations > 0 else 'N/A'],
             ['Confidence Level', f'{confidence*100:.0f}%'],
-            ['Analysis Period', '2025-2045'],
+            ['Quality Score', self.simulation_metadata.get('quality_score', 'N/A')],
+            ['Analysis Period', f'{self.simulation_metadata.get("start_year", 2025)}-{self.simulation_metadata.get("end_year", 2045)}'],
             ['Runtime', runtime_str],
             ['Date Generated', datetime.now().strftime('%B %d, %Y')]
         ]
@@ -970,9 +971,10 @@ class PDFReportGenerator:
             ['Successful Iterations', f'{self.simulation_metadata.get("successful_iterations", "N/A"):,}', 'Successfully completed simulation runs'],
             ['Failed Iterations', f'{self.simulation_metadata.get("failed_iterations", 0):,}', 'Failed or incomplete simulation runs'],
             ['Confidence Level', f'{self.simulation_metadata.get("confidence_level", 0.95)*100:.0f}%', 'Statistical confidence level for results'],
-            ['Random Seed', '42', 'Fixed seed for reproducibility'],
-            ['CPU Cores Used', '10', 'Parallel processing cores utilized'],
-            ['Time Horizon', '2025-2045', 'Simulation period analyzed'],
+            ['Quality Score', f'{self.simulation_metadata.get("quality_score", "N/A")}', 'Statistical convergence quality grade (A-F)'],
+            ['Random Seed', f'{self.simulation_metadata.get("random_seed", 42)}', 'Fixed seed for reproducibility'],
+            ['CPU Cores Used', f'{self.simulation_metadata.get("n_cores", 10)}', 'Parallel processing cores utilized'],
+            ['Time Horizon', f'{self.simulation_metadata.get("start_year", 2025)}-{self.simulation_metadata.get("end_year", 2045)}', 'Simulation period analyzed'],
             ['Time Step', '30 days', 'Temporal resolution of simulation'],
         ]
         
@@ -1053,6 +1055,13 @@ class PDFReportGenerator:
         # Network and Economic Parameters - keep title with table
         subsection3 = Paragraph("<b>Network and Economic Parameters</b>", self.styles['ProfessionalHeading3'])
         
+        # Get network and economic parameters from metadata
+        n_validators = self.simulation_metadata.get('n_validators', 1017)
+        total_stake_sol = self.simulation_metadata.get('total_stake_sol', 407735909) / 1e6  # Convert to millions
+        sol_price = self.simulation_metadata.get('sol_price_usd', 234.97)
+        tvl = self.simulation_metadata.get('tvl_usd', 8.5e9) / 1e9  # Convert to billions
+        market_cap = (total_stake_sol * 1e6 * sol_price) / 1e9  # Calculate market cap in billions
+        
         # Build section elements to keep together
         network_section = []
         network_section.append(subsection3)
@@ -1060,9 +1069,9 @@ class PDFReportGenerator:
         
         network_data = [
             ['Parameter', 'Value', 'Description'],
-            ['Active Validators', '1,032', 'Current Solana validator count'],
-            ['Total Stake', '~380M SOL', 'Total staked amount in network'],
-            ['SOL Market Cap', '$130.62B', 'Current market valuation'],
+            ['Active Validators', f'{n_validators:,}', 'Current Solana validator count'],
+            ['Total Stake', f'~{total_stake_sol:.0f}M SOL', 'Total staked amount in network'],
+            ['SOL Market Cap', f'${market_cap:.1f}B', 'Current market valuation'],
             ['Stake Concentration', 'Top 20: 35%', 'Stake held by largest validators'],
             ['Geographic Distribution', 'US/EU: 60%', 'Regional concentration of nodes'],
             ['Consensus Threshold (Halt)', '33.3%', 'Stake needed to halt network'],
@@ -1951,7 +1960,7 @@ class PDFReportGenerator:
             leftMargin=0.75*inch,
             topMargin=0.75*inch,
             bottomMargin=0.75*inch,
-            title="Appendix 2 - Quantum Risk Assessment for Solana Blockchain",
+            title="Appendix B - Quantum Risk Assessment for Solana Blockchain",
             author="Marc Johnson",
             subject="Quantum Computing Threat Analysis",
             creator="Professional PDF Generator v2.0"

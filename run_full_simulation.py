@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # Import configuration
 from src.config import SimulationParameters
+from src.data_fetcher import update_config_with_live_data
 
 # Import core simulation
 from src.core.simulation import MonteCarloSimulation
@@ -298,7 +299,7 @@ def generate_visualizations(results: dict, analysis: dict, output_dir: Path):
     print(f"✓ Visualizations saved to: {plots_dir}")
 
 
-def generate_reports(results: dict, analysis: dict, output_dir: Path):
+def generate_reports(results: dict, analysis: dict, output_dir: Path, sim_config: SimulationParameters):
     """
     Generate comprehensive reports.
     
@@ -313,7 +314,7 @@ def generate_reports(results: dict, analysis: dict, output_dir: Path):
     reports_dir = output_dir / "reports"
     
     # Configure report generator
-    config = ReportConfig(
+    report_config = ReportConfig(
         title="Solana Quantum Impact Monte Carlo Simulation Report",
         author="Marc Johnson",
         include_charts=True,
@@ -321,10 +322,21 @@ def generate_reports(results: dict, analysis: dict, output_dir: Path):
         include_raw_data=False
     )
     
-    generator = ReportGenerator(config)
+    generator = ReportGenerator(report_config)
     
     # Generate markdown report
     print("  Creating markdown report...")
+    # Ensure metadata has config values
+    if 'metadata' not in results:
+        results['metadata'] = {}
+    results['metadata'].update({
+        'confidence_level': sim_config.confidence_level,
+        'random_seed': sim_config.random_seed,
+        'n_cores': sim_config.n_cores,
+        'start_year': sim_config.start_year,
+        'end_year': sim_config.end_year
+    })
+    
     md_report = generator.generate_report(
         results,
         risk_metrics=analysis.get('risk_metrics'),
@@ -336,7 +348,7 @@ def generate_reports(results: dict, analysis: dict, output_dir: Path):
     # Get metadata from simulation results
     metadata = results.get('metadata', {})
     json_summary = {
-        'configuration': convert_to_serializable(config),
+        'configuration': convert_to_serializable(sim_config),
         'analysis': convert_to_serializable(analysis),
         'summary': {
             'total_iterations': results.get('total_iterations', metadata.get('total_iterations', 0)),
@@ -355,12 +367,28 @@ def generate_reports(results: dict, analysis: dict, output_dir: Path):
         # Extract simulation metadata for PDF generation
         # Check metadata first (where simulation.py stores it), then fallback to summary
         metadata = results.get('metadata', {})
+        # Get convergence report quality score if available
+        quality_score = 'N/A'
+        convergence_report = results.get('convergence_report', {})
+        if convergence_report:
+            quality_score = convergence_report.get('quality_score', 'N/A')
+        
         simulation_metadata = {
             'n_iterations': results.get('total_iterations', metadata.get('total_iterations', 0)),
             'successful_iterations': metadata.get('successful_iterations', results.get('summary', {}).get('successful_iterations', 0)),
             'failed_iterations': metadata.get('failed_iterations', results.get('summary', {}).get('failed_iterations', 0)),
             'runtime_seconds': results.get('runtime_seconds', metadata.get('runtime_seconds', 0)),
-            'confidence_level': 0.95  # Standard confidence level
+            'confidence_level': sim_config.confidence_level,  # Use actual configured value
+            'random_seed': sim_config.random_seed,  # Use actual configured value
+            'n_cores': sim_config.n_cores,  # Use actual configured value
+            'start_year': sim_config.start_year,  # Use actual configured value
+            'end_year': sim_config.end_year,  # Use actual configured value
+            'quality_score': quality_score,  # Add quality score
+            # Add network and economic parameters for PDF generation
+            'n_validators': sim_config.network.n_validators,
+            'total_stake_sol': sim_config.network.total_stake_sol,
+            'sol_price_usd': sim_config.economic.sol_price_usd,
+            'tvl_usd': sim_config.economic.total_value_locked_usd
         }
         
         pdf_generator = PDFReportGenerator(reports_dir, simulation_metadata)
@@ -459,6 +487,16 @@ def main():
         action='store_true',
         help='Run quick test with 10 iterations'
     )
+    parser.add_argument(
+        '--live-data',
+        action='store_true',
+        help='Fetch live Solana network data from APIs (default: use static values)'
+    )
+    parser.add_argument(
+        '--no-cache',
+        action='store_true',
+        help='Disable caching when fetching live data'
+    )
     
     args = parser.parse_args()
     
@@ -478,6 +516,14 @@ def main():
         end_year=2050
     )
     
+    # Fetch live network data if requested
+    if args.live_data:
+        print(f"\n📡 Fetching live Solana network data...")
+        use_cache = not args.no_cache
+        update_config_with_live_data(config, fetch_live=True)
+    else:
+        print(f"\n📊 Using default network parameters (Dec 2024 baseline)")
+    
     print(f"\n" + "="*70)
     print(f" SOLANA QUANTUM IMPACT MONTE CARLO SIMULATION ")
     print(f"="*70)
@@ -487,6 +533,14 @@ def main():
     print(f"  • Random Seed: {config.random_seed}")
     print(f"  • Time Range: {config.start_year}-{config.end_year}")
     print(f"  • Output: {args.output}/")
+    
+    # Show live data if fetched
+    if args.live_data:
+        print(f"\nLive Network Data:")
+        print(f"  • SOL Price: ${config.economic.sol_price_usd:,.2f}")
+        print(f"  • Validators: {config.network.n_validators:,}")
+        print(f"  • Total Staked: {config.network.total_stake_sol/1e6:,.1f}M SOL")
+        print(f"  • TVL: ${config.economic.total_value_locked_usd/1e9:,.1f}B")
     
     # Create output directory
     output_dir = create_output_directory(args.output)
@@ -504,7 +558,7 @@ def main():
         
         # Generate reports
         try:
-            generate_reports(results, analysis, output_dir)
+            generate_reports(results, analysis, output_dir, config)
         except Exception as e:
             print(f"⚠️  Warning: Report generation failed: {e}")
             print("  Continuing with summary...")

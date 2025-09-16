@@ -12,7 +12,7 @@ This document provides detailed explanations for all parameters used in the Sola
 | **Total Value Locked** | $8.5B | [DeFiLlama](https://defillama.com/chain/Solana) | Monthly |
 | **Daily Volume** | $3.8B | CoinGecko | Monthly |
 | **Total Staked SOL** | 380M SOL | [Solana Compass](https://solanacompass.com/) | Quarterly |
-| **Validator Count** | 1,950 | [Solana Beach](https://solanabeach.io/validators) | Quarterly |
+| **Validator Count** | 1,017 | [Solana Beach](https://solanabeach.io/validators) | Daily |
 | **Total Value at Risk** | $97.8B | Calculated (Staked + TVL) | Monthly |
 
 ### Economic Impact Calculation
@@ -108,7 +108,7 @@ This document provides detailed explanations for all parameters used in the Sola
 
 ### Solana Network Metrics
 
-#### `validators = 1,950`
+#### `validators = 1,017`
 - **Description**: Current number of Solana validators
 - **Rationale**: Actual Solana network statistics
 - **Reference**: [Solana Beach](https://solanabeach.io/validators) (December 2024)
