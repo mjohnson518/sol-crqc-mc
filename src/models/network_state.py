@@ -68,6 +68,8 @@ class NetworkSnapshot:
     superminority_count: int
     gini_coefficient: float
     network_resilience: float  # 0 to 1
+    compromised_validators: int = 0  # Number of compromised validators
+    attack_occurred: bool = False  # Whether an attack has occurred
     
     @property
     def migrated_stake_percentage(self) -> float:
@@ -303,6 +305,9 @@ class NetworkStateModel:
             validators, migration_progress, year, crqc_year
         )
         
+        # Count compromised validators (for tracking purposes)
+        compromised_count = sum(1 for v in validators if hasattr(v, 'is_compromised') and v.is_compromised)
+        
         return NetworkSnapshot(
             year=year,
             n_validators=n_validators,
@@ -313,7 +318,9 @@ class NetworkStateModel:
             migration_progress=migration_progress,
             superminority_count=superminority_count,
             gini_coefficient=gini,
-            network_resilience=resilience
+            network_resilience=resilience,
+            compromised_validators=compromised_count,
+            attack_occurred=compromised_count > 0
         )
     
     def _generate_validators(

@@ -652,7 +652,9 @@ def test_economic_model():
         migration_progress=0.3,
         superminority_count=30,
         gini_coefficient=0.8,
-        network_resilience=0.4
+        network_resilience=0.4,
+        compromised_validators=100,  # Test with some compromised validators
+        attack_occurred=True  # Test scenario with attack
     )
     
     print("Economic Impact Model Test:")

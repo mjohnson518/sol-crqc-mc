@@ -653,7 +653,9 @@ class MonteCarloSimulation:
                     migration_progress=network_state.get('migration_progress', 0.3),
                     superminority_count=30,
                     gini_coefficient=0.8,
-                    network_resilience=network_state.get('network_resilience', 0.5)
+                    network_resilience=network_state.get('network_resilience', 0.5),
+                    compromised_validators=network_state.get('compromised_validators', 0),
+                    attack_occurred=attack_scenario.attack_success if attack_scenario else False
                 )
             
             # Calculate economic impact

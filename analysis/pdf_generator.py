@@ -1951,7 +1951,6 @@ class PDFReportGenerator:
         # Build temporary document
         temp_doc.build(self.story[:], canvasmaker=ProfessionalCanvas)
         
-        # SECOND PASS: Build final document with accurate TOC
         pdf_path = self.output_dir / output_filename
         doc = SimpleDocTemplate(
             str(pdf_path),
@@ -1960,10 +1959,10 @@ class PDFReportGenerator:
             leftMargin=0.75*inch,
             topMargin=0.75*inch,
             bottomMargin=0.75*inch,
-            title="Appendix B - Quantum Risk Assessment for Solana Blockchain",
+            title="Appendix B - Quantum Risk Assessment for Solana",
             author="Marc Johnson",
             subject="Quantum Computing Threat Analysis",
-            creator="Professional PDF Generator v2.0"
+            creator="C12"
         )
         
         # Rebuild story with accurate TOC

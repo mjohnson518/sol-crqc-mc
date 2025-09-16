@@ -16,6 +16,12 @@ import numpy as np
 
 from .statistical_analysis import StatisticalSummary
 from .risk_assessment import RiskMetrics, ThreatAssessment
+try:
+    from src.utils.migration_cost_calculator import calculate_migration_cost, format_cost_breakdown_for_report
+except ImportError:
+    # Fallback if module not available
+    calculate_migration_cost = None
+    format_cost_breakdown_for_report = None
 
 
 @dataclass
@@ -164,7 +170,13 @@ class ReportGenerator:
         
         summary.append("### Simulation Overview")
         summary.append("")
-        summary.append(f"- **Total Iterations:** {n_iterations:,} Monte Carlo simulations")
+        
+        # Calculate success rate
+        total_requested = metadata.get('iterations_requested', n_iterations)
+        successful_runs = n_iterations
+        success_rate = (successful_runs / total_requested * 100) if total_requested > 0 else 0
+        
+        summary.append(f"- **Successful Runs:** {successful_runs:,} of {total_requested:,} ({success_rate:.1f}%)")
         summary.append(f"- **Analysis Period:** {metadata.get('end_year', 2045) - metadata.get('start_year', 2025)} years")
         summary.append(f"- **Time Horizon:** {metadata.get('start_year', 2025)}-{metadata.get('end_year', 2045)}")
         summary.append(f"- **Confidence Level:** {metadata.get('confidence_level', 0.95)*100:.0f}%")
@@ -1048,6 +1060,34 @@ class ReportGenerator:
         recs.append("## 🛡️ Quantum-Safe Migration Strategy")
         recs.append("")
         
+        # Calculate dynamic migration cost if calculator available
+        if calculate_migration_cost:
+            # Get network parameters from results
+            config = results.get('metadata', {}).get('config', {})
+            network_params = config.get('network', {})
+            economic_params = config.get('economic', {})
+            
+            n_validators = network_params.get('n_validators', 1017)
+            sol_price = economic_params.get('sol_price_usd', 235.0)
+            total_stake = network_params.get('total_stake_sol', 380_000_000)
+            tvl = economic_params.get('total_value_locked_usd', 8.5e9)
+            
+            # Calculate migration cost breakdown
+            cost_breakdown = calculate_migration_cost(
+                n_validators=n_validators,
+                sol_price_usd=sol_price,
+                total_stake_sol=total_stake,
+                tvl_usd=tvl,
+                migration_progress=0.0,
+                urgency_factor=1.0
+            )
+            
+            # Add cost analysis section
+            recs.append("### 💰 Migration Investment Analysis")
+            recs.append("")
+            recs.append(format_cost_breakdown_for_report(cost_breakdown))
+            recs.append("")
+        
         # Get risk level
         risk_level = self._extract_risk_level(risk_metrics) if risk_metrics else "Moderate"
         
@@ -1058,7 +1098,10 @@ class ReportGenerator:
             recs.append("- [ ] Establish Quantum Task Force")
             recs.append("- [ ] Conduct comprehensive risk audit")
             recs.append("- [ ] Begin validator education campaign")
-            recs.append("- [ ] Allocate emergency migration budget ($500M-1B initial phase)")
+            if calculate_migration_cost and 'cost_breakdown' in locals():
+                recs.append(f"- [ ] Allocate emergency migration budget (${cost_breakdown.total_cost/1e6:.0f}M with {cost_breakdown.roi_percentage/100:.0f}x ROI)")
+            else:
+                recs.append("- [ ] Allocate emergency migration budget ($47.5M base estimate)")
             recs.append("")
             recs.append("#### Phase 2: Rapid Migration (3-12 months)")
             recs.append("- [ ] Deploy hybrid classical-quantum signatures")
@@ -1078,7 +1121,10 @@ class ReportGenerator:
             recs.append("#### Phase 1: Planning (0-6 months)")
             recs.append("- [ ] Form quantum security committee")
             recs.append("- [ ] Develop migration roadmap")
-            recs.append("- [ ] Allocate resources and budget ($5-10M)")
+            if calculate_migration_cost and 'cost_breakdown' in locals():
+                recs.append(f"- [ ] Allocate resources and budget (${cost_breakdown.total_cost/1e6:.1f}M total investment)")
+            else:
+                recs.append("- [ ] Allocate resources and budget ($47.5M estimated)")
             recs.append("- [ ] Begin stakeholder engagement")
             recs.append("")
             recs.append("#### Phase 2: Pilot Program (6-12 months)")

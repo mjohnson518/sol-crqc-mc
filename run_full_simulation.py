@@ -334,7 +334,8 @@ def generate_reports(results: dict, analysis: dict, output_dir: Path, sim_config
         'random_seed': sim_config.random_seed,
         'n_cores': sim_config.n_cores,
         'start_year': sim_config.start_year,
-        'end_year': sim_config.end_year
+        'end_year': sim_config.end_year,
+        'iterations_requested': sim_config.n_iterations
     })
     
     md_report = generator.generate_report(
