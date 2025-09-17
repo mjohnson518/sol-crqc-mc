@@ -303,13 +303,13 @@ def format_cost_breakdown_for_report(breakdown: MigrationCostBreakdown) -> str:
     # Format break-even probability more intelligently
     if breakdown.break_even_probability < 0.001:  # Less than 0.1%
         report.append(f"- **Break-even CRQC Probability**: {breakdown.break_even_probability*100:.3f}%")
-        report.append(f"  - *Investment justified with just {breakdown.break_even_probability*100:.1f}% probability of quantum computers emerging*")
+        report.append(f"  - *Investment justified with just {breakdown.break_even_probability*100:.3f}% probability of quantum computers emerging*")
     elif breakdown.break_even_probability < 0.01:  # Less than 1%
         report.append(f"- **Break-even CRQC Probability**: {breakdown.break_even_probability*100:.2f}%")
-        report.append(f"  - *Investment justified with just {breakdown.break_even_probability*100:.1f}% probability of quantum computers emerging*")
+        report.append(f"  - *Investment justified with just {breakdown.break_even_probability*100:.3f}% probability of quantum computers emerging*")
     else:
         report.append(f"- **Break-even CRQC Probability**: {breakdown.break_even_probability*100:.1f}%")
-        report.append(f"  - *Investment justified with just {breakdown.break_even_probability*100:.1f}% probability of quantum computers emerging*")
+        report.append(f"  - *Investment justified with just {breakdown.break_even_probability*100:.3f}% probability of quantum computers emerging*")
     
     # Add context about industry consensus for comparison
     report.append("  - *Industry consensus: >5% probability by 2035*")

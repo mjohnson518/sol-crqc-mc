@@ -335,7 +335,9 @@ class MonteCarloSimulation:
                 result = self._run_single_iteration(i, iteration_seed)
                 results.append(result)
             except Exception as e:
+                import traceback
                 logger.warning(f"Iteration {i} failed in batch: {e}")
+                logger.debug(f"Full traceback:\n{traceback.format_exc()}")
                 # Continue with other iterations in batch
         
         return results

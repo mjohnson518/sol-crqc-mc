@@ -124,10 +124,27 @@ class NetworkEvolution:
     
     def get_snapshot_at_year(self, year: float) -> NetworkSnapshot:
         """Get network snapshot at specific year."""
+        # Handle None year - return first snapshot
+        if year is None:
+            if self.snapshots:
+                return self.snapshots[0]
+            # Create a default snapshot if none exist
+            return NetworkSnapshot(
+                year=2025,
+                n_validators=self.snapshots[0].n_validators if self.snapshots else 1000,
+                total_stake_sol=self.snapshots[0].total_stake_sol if self.snapshots else 400_000_000,
+                validator_concentration_gini=0.85,
+                quantum_resistant_validators=0,
+                migration_progress=0.0,
+                network_health_score=1.0,
+                compromised_validators=0,
+                attack_occurred=False
+            )
+            
         for snapshot in self.snapshots:
-            if snapshot.year >= year:
+            if snapshot.year is not None and snapshot.year >= year:
                 return snapshot
-        return self.snapshots[-1]
+        return self.snapshots[-1] if self.snapshots else self.get_snapshot_at_year(None)
     
     def get_migration_timeline(self) -> Dict[str, float]:
         """Get key migration milestones."""
