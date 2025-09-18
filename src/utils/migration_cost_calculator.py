@@ -174,9 +174,10 @@ def calculate_migration_cost(
     total_cost = hardware_cost + development_cost + security_audit_cost + coordination_cost + contingency
     
     # Calculate economic benefits
-    # Avoided losses based on protected value
-    # Conservative estimate: 3x multiplier for total impact
-    potential_catastrophic_loss = protected_value * 3.0
+    # Avoided losses based on TVL (not market cap)
+    # Realistic estimate: 20-30% of TVL could be at risk in catastrophic attack
+    TVL_AT_RISK_PERCENT = 0.25  # 25% of TVL at risk
+    potential_catastrophic_loss = tvl_usd * TVL_AT_RISK_PERCENT
     
     # Probability-weighted avoided losses
     # Based on industry consensus of >5% CRQC probability by 2035
@@ -184,8 +185,8 @@ def calculate_migration_cost(
     avoided_losses = potential_catastrophic_loss * CRQC_PROBABILITY_10Y
     
     # Additional benefits (conservative estimates)
-    institutional_adoption_value = protected_value * 0.008  # 0.8% value preservation
-    first_mover_advantage = protected_value * 0.002  # 0.2% competitive advantage
+    institutional_adoption_value = tvl_usd * 0.008  # 0.8% value preservation from institutional confidence
+    first_mover_advantage = tvl_usd * 0.002  # 0.2% competitive advantage
     crisis_migration_avoided = total_cost * 3  # Crisis migration costs 3x more
     
     total_benefits = avoided_losses + institutional_adoption_value + first_mover_advantage + (crisis_migration_avoided * 0.1)

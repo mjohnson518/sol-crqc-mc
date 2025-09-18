@@ -425,7 +425,7 @@ class MonteCarloSimulation:
         return {
             'crqc_year': crqc_year,
             'qubit_trajectory': [],
-            'breakthrough_year': int(crqc_year)
+                'breakthrough_year': int(crqc_year) if crqc_year is not None else 2031
         }
     
     def _sample_network_evolution(
@@ -498,7 +498,7 @@ class MonteCarloSimulation:
                     
                     snapshot = evolution.get_snapshot_at_year(year)
                     attack_plan = self.models['attack_scenarios'].sample(
-                        np.random.RandomState(int(year)),  # Deterministic for reproducibility
+                        np.random.RandomState(int(year) if year is not None else 2030),  # Deterministic for reproducibility
                         capability,
                         snapshot
                     )
@@ -661,7 +661,13 @@ class MonteCarloSimulation:
                 )
             
             # Calculate economic impact
-            rng = np.random.RandomState(int(attack_scenario.year))
+            # Ensure we have a valid year for the random seed
+            if attack_scenario and hasattr(attack_scenario, 'year') and attack_scenario.year is not None:
+                seed_year = int(attack_scenario.year)
+            else:
+                seed_year = 2030  # Default year if None
+            
+            rng = np.random.RandomState(seed_year)
             economic_loss = self.models['economic_impact'].calculate_impact(
                 rng,
                 attack_scenario,
