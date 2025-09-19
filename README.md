@@ -6,14 +6,15 @@ This Monte Carlo simulation models the probabilistic impact of quantum computing
 
 ## Key Questions Addressed
 
-1. **When will quantum computers threaten Solana?** - Probabilistic modeling of CRQC emergence (2030-2045)
-2. **What is the attack success probability?** - Based on quantum capabilities vs. network migration progress
-3. **What are the economic consequences?** - Direct losses, market crashes, and recovery trajectories
-4. **How effective is migration to quantum-safe cryptography?** - Impact of proactive vs. reactive migration strategies
+1. **What components of the Solana architecture are vulnerable to attacks from quantum computers?** - Digital signatures (Ed25519), validator consensus mechanisms, and cryptographic proofs 
+2. **When will quantum computers threaten Solana?** - Probabilistic modeling of CRQC emergence (2030-2045)
+3. **What is the attack success probability?** - Based on quantum capabilities vs. network migration progress
+4. **What are the economic consequences?** - Direct losses, market crashes, and recovery trajectories
+5. **How effective is migration to quantum-safe cryptography?** - Impact of proactive vs. reactive migration strategies
 
-## 📊 Key Economic Findings (Validated)
+## 📊 Key Economic Findings
 
-**✅ VALIDATED**: Results confirmed by 10,000 iteration Monte Carlo simulation (100% success rate)
+**✅ VALIDATED**: Results confirmed by 10,000 iteration Monte Carlo simulation
 
 **⚠️ IMPORTANT**: All calculations follow standardized methodology documented in **[docs/economic_calculations.md](docs/economic_calculations.md)**
 
@@ -136,7 +137,7 @@ print(f"Mean CRQC emergence: {results['metrics']['first_attack_year']['mean']:.1
 print(f"Economic loss (95% VaR): ${results['metrics']['economic_loss_usd']['percentile_95']/1e9:.1f}B")
 ```
 
-### Run Full Simulation with Live Data (New!)
+### Run Full Simulation with Live Data
 
 ```bash
 # Run with default parameters (uses Dec 2024 baseline)
@@ -152,7 +153,7 @@ python run_full_simulation.py --iterations 100 --live-data --no-cache
 python run_full_simulation.py --quick --live-data
 ```
 
-#### 📡 Live Data Integration
+#### Live Data Integration
 
 When using `--live-data`, the simulation automatically fetches:
 - **Current SOL Price**: Real-time market price from CoinGecko
