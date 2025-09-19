@@ -9,14 +9,13 @@ This document defines the **validated methodology** for calculating economic imp
 - **100% success rate** (0 failures)
 
 **Key Validated Results:**
-- Risk calculations based on **$12.7B TVL** (98% stablecoins) ✅
+- Risk calculations based on **$12.74B TVL** ✅
 - Expected value methodology using **probability-weighted losses** ✅
-- ROI of **901%** (confirmed by simulation) ✅
-- Benefit-Cost ratio of **10:1** (confirmed by simulation) ✅
-- Validators: **993** (live data integrated) ✅
+- Benefit-Cost ratio of **12.5:1** (confirmed by simulation) ✅
+- Validators: **994** (live data integrated) ✅
 - CRQC Timeline: **2029** median (2027-2032 range) ✅
 
-**Last Updated:** September 18, 2025 (Post-Validation)
+**Last Updated:** September 19, 2025 (Post-Validation)
 
 ## Core Economic Values
 
@@ -26,9 +25,9 @@ This document defines the **validated methodology** for calculating economic imp
 |-----------|-------|--------|-----------------|
 | SOL Price | $246.50 | CoinGecko | Real-time |
 | Total Staked SOL | 411M SOL | Solana RPC | Real-time |
-| Total Value Locked (TVL) | $12.7B | [DeFiLlama](https://defillama.com/chain/solana) | Real-time |
+| Total Value Locked (TVL) | $12.74B | [DeFiLlama](https://defillama.com/chain/solana) | Real-time |
 | Stablecoins in TVL | $12.5B | [DeFiLlama](https://defillama.com/stablecoins/Solana) | Real-time |
-| Validators | 993 | [Solana Beach](https://solanabeach.io/validators) | Real-time |
+| Validators | 994 | [Solana Beach](https://solanabeach.io/validators) | Real-time |
 | Market Cap | $134B | Calculated | Real-time |
 
 ### Calculated Risk Exposure (Realistic Model)
@@ -36,17 +35,15 @@ This document defines the **validated methodology** for calculating economic imp
 #### Attack Loss Calculation
 ```
 Attack Loss = TVL × Risk Percentage
-Attack Loss = $12.7B × 0.25 (25% of TVL at risk)
-Attack Loss = $3.175B
+Attack Loss = $12.74B × 0.25 (25% of TVL at risk)
+Attack Loss = $3.185B
 ```
-
-**Note: 98% of TVL is in stablecoins ($12.5B/$12.7B), making this value highly liquid and attractive to attackers.**
 
 #### Expected Value Calculation
 ```
 Expected Loss = Attack Loss × CRQC Probability
-Expected Loss = $3.175B × 0.15 (15% probability over 10 years)
-Expected Loss = $476M
+Expected Loss = $3.185B × 0.15 (15% probability over 10 years)
+Expected Loss = $478M
 ```
 
 ### Attack Scenario Analysis
@@ -58,7 +55,7 @@ Expected Loss = $476M
 - FTX collapse (2022): $8B lost (but centralized exchange, not DeFi)
 
 **TVL-Based Risk Assessment:**
-1. **Total Value Locked**: $12.7B (actual at-risk value in DeFi)
+1. **Total Value Locked**: $12.74B (actual at-risk value in DeFi)
 2. **Stablecoin Concentration**: $12.5B (98%) - extremely liquid
 3. **Realistic Attack Scenario**: 25% of TVL compromised ($3.2B)
 4. **Not All Protocols Fail**: Distributed risk across ecosystem

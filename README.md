@@ -28,14 +28,12 @@ Please use the numerical results and reports for decision-making while the visua
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| **Total Value Locked (TVL)** | $12.7B | ✅ Validated |
-| **Stablecoins in TVL** | $12.5B (98%) | ✅ Validated |
+| **Total Value Locked (TVL)** | $12.74B | ✅ Validated |
 | **Realistic Attack Loss** | $3.2B | ✅ 25% of TVL at risk |
 | **Avoided Losses (Expected)** | $476M | ✅ Attack loss × 15% probability |
-| **Migration Cost** | $47.5M | ✅ Component-based analysis |
-| **Return on Investment** | **901%** | ✅ Confirmed by simulation |
-| **Benefit-Cost Ratio** | **10:1** | ✅ Confirmed by simulation |
-| **Active Validators** | 993 | ✅ Live data integrated |
+| **Migration Cost** | $49.4M | ✅ Component-based analysis |
+| **Benefit-Cost Ratio** | **12.5:1** | ✅ Confirmed by simulation |
+| **Active Validators** | 994 | ✅ Live data integrated |
 | **CRQC Emergence (Median)** | **2029** | ✅ Validated (2027-2032 range) |
 | **Years to Prepare** | **4** | ⚠️ Time-critical |
 

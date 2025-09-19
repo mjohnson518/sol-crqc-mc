@@ -341,12 +341,12 @@ class DataFetcher:
             total_supply=580_000_000,
             circulating_supply=470_000_000,
             total_staked_sol=380_000_000,
-            n_validators=1017,  # From Solana Beach
+            n_validators=994,  # From Solana Beach (Sep 2025)
             stake_concentration=0.82,
-            tvl_usd=8_500_000_000,
+            tvl_usd=12_740_000_000,  # From DefiLlama (Sep 2025)
             daily_volume_usd=3_800_000_000,
             timestamp=datetime.now(),
-            data_source="Default values (Dec 2024)"
+            data_source="Default values (Sep 2025)"
         )
 
 
