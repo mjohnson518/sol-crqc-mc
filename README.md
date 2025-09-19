@@ -11,15 +11,6 @@ This Monte Carlo simulation models the probabilistic impact of quantum computing
 3. **What are the economic consequences?** - Direct losses, market crashes, and recovery trajectories
 4. **How effective is migration to quantum-safe cryptography?** - Impact of proactive vs. reactive migration strategies
 
-## ⚠️ Work In Progress Notice
-
-**IMPORTANT**: The visualization components (Executive Dashboard and Technical Plots) are currently in a **Work In Progress** stage and are not yet ready for production use. They are being refined for:
-- Professional visual Enhancement
-- Consistent data presentation
-- Executive-ready formatting
-
-Please use the numerical results and reports for decision-making while the visual components are being finalized.
-
 ## 📊 Key Economic Findings (Validated)
 
 **✅ VALIDATED**: Results confirmed by 10,000 iteration Monte Carlo simulation (100% success rate)
@@ -294,6 +285,14 @@ pytest tests/test_quantum_timeline.py
 # Run with coverage
 pytest --cov=src tests/
 ```
+## ⚠️ Work In Progress Notice
+
+**IMPORTANT**: The visualization components (Executive Dashboard and Technical Plots) are currently in a **Work In Progress** stage and are not yet ready for production use. They are being refined for:
+- Professional visual Enhancement
+- Consistent data presentation
+- Executive-ready formatting
+
+Please use the numerical results and reports for decision-making while the visual components are being finalized.
 
 ## Documentation
 
@@ -302,33 +301,15 @@ pytest --cov=src tests/
 **⚠️ MUST READ**: Before running simulations or interpreting results:
 
 - **[Economic Calculations Methodology](docs/economic_calculations.md)** - **Canonical source for all calculations**
-  - Realistic attack loss calculation based on TVL, not market cap
-  - TVL: $12.7B with 98% in stablecoins (highly liquid)
-  - Expected losses: $476M (25% of TVL × 15% probability)
-  - ROI calculation showing 901% return on investment
 
-- **[Migration Cost Analysis](docs/migration_cost_analysis.md)** - **Detailed $47.5M cost breakdown**
-  - Hardware acceleration ($22.5M), Development ($10M), Auditing ($4M)
-  - Validator coordination ($6M), Contingency ($5M)
-  - Component-based costing methodology
-  - Benefit-Cost ratio of 7:1
-  - Full cost-benefit justification with realistic projections
+- **[Migration Cost Analysis](docs/migration_cost_analysis.md)** - **Detailed $49.4M cost breakdown**
   
 - **[Academic Justification](docs/methodology_justification.md)** - PhD-level documentation
-  - Mathematical proofs and definitions
-  - Historical validation with 15+ crypto events
-  - Sensitivity analysis and statistical rigor
-  - Peer review standards met
 
 ### Other Documentation
 
 - [Parameter Documentation](docs/parameters.md) - Current market values and quantum parameters
 - [Convergence Analysis](docs/convergence_analysis.md) - Monte Carlo convergence theory and metrics
-- [API Reference](docs/api.md) - Complete API documentation (coming soon)
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
@@ -354,6 +335,7 @@ For questions or collaboration: [GitHub Issues](https://github.com/mjohnson518/s
 ## Acknowledgments
 
 This simulation incorporates research from:
+- Project Eleven
 - IBM Quantum Network predictions
 - Google Quantum AI roadmaps  
 - NIST Post-Quantum Cryptography standardization
