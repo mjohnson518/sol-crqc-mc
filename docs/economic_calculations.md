@@ -101,7 +101,7 @@ The **$47.5M figure** is based on actual component costs:
 **Contingency ($5M):**
 - 15% buffer for unexpected costs
 
-**Total: $47.5M (0.05% of protected value)**
+**Total: $49.4M (0.05% of protected value)**
 
 This is more realistic than percentage-based estimates:
 - Bitcoin SegWit: ~$30M
@@ -111,16 +111,16 @@ This is more realistic than percentage-based estimates:
 ### Return on Investment (ROI)
 ```
 ROI = (Benefit - Cost) / Cost × 100%
-ROI = ($476M - $47.5M) / $47.5M × 100%
-ROI = $428.5M / $47.5M × 100%
-ROI = 901%
+ROI = ($476M - $49.4M) / $47.5M × 100%
+ROI = $428.5M / $49.4M × 100%
+ROI = 991%
 ```
 
 ### Benefit-Cost Ratio
 ```
 B/C = Total Benefits / Total Costs
-B/C = $476M / $47.5M
-B/C = 10.0 ≈ 10:1
+B/C = $476M / $49.4M
+B/C = 12.5 ≈ 12.5:1
 ```
 
 ## Risk Scenarios

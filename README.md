@@ -7,7 +7,7 @@ This Monte Carlo simulation models the probabilistic impact of quantum computing
 ## Key Questions Addressed
 
 1. **What components of the Solana architecture are vulnerable to attacks from quantum computers?** - Digital signatures (Ed25519), validator consensus mechanisms, and cryptographic proofs 
-2. **When will quantum computers threaten Solana?** - Probabilistic modeling of CRQC emergence (2030-2045)
+2. **When will quantum computers threaten Solana?** - Probabilistic modeling of CRQC emergence (2025-2050)
 3. **What is the attack success probability?** - Based on quantum capabilities vs. network migration progress
 4. **What are the economic consequences?** - Direct losses, market crashes, and recovery trajectories
 5. **How effective is migration to quantum-safe cryptography?** - Impact of proactive vs. reactive migration strategies
@@ -29,7 +29,7 @@ This Monte Carlo simulation models the probabilistic impact of quantum computing
 | **CRQC Emergence (Median)** | **2029** | ✅ Validated (2027-2032 range) |
 | **Years to Prepare** | **4** | ⚠️ Time-critical |
 
-*See [Economic Calculations Methodology](docs/economic_calculations.md) for detailed breakdowns and [Academic Justification](docs/methodology_justification.md) for PhD-level documentation.*
+*See [Economic Calculations Methodology](docs/economic_calculations.md) for detailed breakdowns and [Academic Justification](docs/methodology_justification.md) for documentation.*
 
 ## Project Structure
 
@@ -188,7 +188,7 @@ Based on **validated 10,000 iteration simulation** (100% success rate)
 - **Realistic Economic Impact**: $1-3B potential losses for successful attacks
 - **Expected Value at Risk**: **$476M** (15% probability × $3.2B at risk)
 - **Migration ROI**: **901%** return on $47.5M investment (validated)
-- **Benefit-Cost Ratio**: **10:1** (10× return on security investment)
+- **Benefit-Cost Ratio**: **12.5:1** (12.5× return on security investment)
 - **Migration Window**: **4 years** to implement quantum-safe cryptography
 - **Recovery Time**: 30-180 days depending on attack severity
 
@@ -305,7 +305,7 @@ Please use the numerical results and reports for decision-making while the visua
 
 - **[Migration Cost Analysis](docs/migration_cost_analysis.md)** - **Detailed $49.4M cost breakdown**
   
-- **[Academic Justification](docs/methodology_justification.md)** - PhD-level documentation
+- **[Academic Justification](docs/methodology_justification.md)** - Additional documentation
 
 ### Other Documentation
 

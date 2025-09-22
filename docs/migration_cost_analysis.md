@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The estimated cost of **$47.5 million** for full network migration to quantum-safe cryptography represents a highly favorable investment with projected benefits of **$6.95 billion**. This analysis uses dynamic component-based calculations that adjust to current network parameters.
+The estimated cost of **$49.4 million** for full network migration to quantum-safe cryptography represents a highly favorable investment with projected benefits of **$6.95 billion**. This analysis uses dynamic component-based calculations that adjust to current network parameters.
 
 ## Dynamic Cost Calculation Methodology
 
@@ -89,7 +89,7 @@ Coordination_Cost = (Incentives + Support) × Network_Premium
 - ($21.6M + $10M + $3.9M + $7.1M) × 0.15 = **$6.4M**
 
 ### Total Dynamic Cost
-**Sum of all components:** $21.6M + $10M + $3.9M + $7.1M + $6.4M = **$49M**
+**Sum of all components:** $21.6M + $10M + $3.9M + $7.1M + $6.4M = **$49.4M**
 
 *Note: Actual cost varies ±15% based on network conditions*
 
