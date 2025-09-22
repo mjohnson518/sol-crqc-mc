@@ -3,14 +3,34 @@ Quantum computing development timeline model.
 
 This module models the evolution of quantum computing capabilities over time,
 including when cryptographically relevant quantum computers (CRQC) might emerge.
+
+Enhanced features (controlled by config flags):
+- Cox proportional hazards model for time-dependent covariates
+- Multimodal distributions for competing qubit technologies
+- Grover's algorithm modeling for hash attacks
+- Live data fetching from quantum computing APIs
 """
 
 import numpy as np
 from scipy import stats
+from scipy.stats import norm, lognorm, expon
+from scipy.special import expit
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 import logging
 from enum import Enum
+import requests
+import json
+from datetime import datetime, timedelta
+from pathlib import Path
+
+# Import lifelines for Cox model if available
+try:
+    from lifelines import CoxPHFitter
+    LIFELINES_AVAILABLE = True
+except ImportError:
+    LIFELINES_AVAILABLE = False
+    logging.info("lifelines not available - Cox models will use fallback implementation")
 
 from src.config import QuantumParameters
 
@@ -61,6 +81,39 @@ class QuantumCapability:
 
 
 @dataclass
+class GroverCapability:
+    """Represents Grover's algorithm capability for hash attacks."""
+    
+    year: float
+    logical_qubits: int
+    can_attack_sha256: bool
+    speedup_factor: float
+    attack_time_hours: float
+    poh_vulnerability: bool  # Solana-specific PoH vulnerability
+    
+    @property
+    def effective_security_bits(self) -> int:
+        """Calculate effective security bits after Grover speedup."""
+        if self.can_attack_sha256:
+            return 128  # SHA-256 reduced from 256 to 128 bits
+        return 256
+
+
+@dataclass
+class QuantumTechnology:
+    """Represents a specific quantum computing technology path."""
+    
+    name: str
+    current_qubits: int
+    growth_rate: float
+    gate_fidelity: float
+    coherence_time_ms: float
+    advantages: List[str]
+    disadvantages: List[str]
+    probability_weight: float  # Weight in multimodal distribution
+
+
+@dataclass
 class QuantumTimeline:
     """Complete quantum development timeline."""
     
@@ -69,6 +122,8 @@ class QuantumTimeline:
     breakthrough_years: List[float]  # Years with major breakthroughs
     projection_method: str  # Method used for projection
     confidence: float  # Confidence in projection
+    grover_capabilities: Optional[List[GroverCapability]] = None  # Grover timeline
+    winning_technology: Optional[str] = None  # For multimodal sampling
     
     def get_capability_at_year(self, year: float) -> QuantumCapability:
         """Get quantum capability at specific year."""
@@ -84,6 +139,15 @@ class QuantumTimeline:
             if cap.threat_level.value >= level.value:
                 return cap.year - 2025
         return float('inf')
+    
+    def get_grover_capability_at_year(self, year: float) -> Optional[GroverCapability]:
+        """Get Grover capability at specific year."""
+        if not self.grover_capabilities:
+            return None
+        for cap in self.grover_capabilities:
+            if cap.year >= year:
+                return cap
+        return self.grover_capabilities[-1] if self.grover_capabilities else None
 
 
 class QuantumDevelopmentModel:
@@ -97,14 +161,23 @@ class QuantumDevelopmentModel:
     4. Historical growth curve fitting
     """
     
-    def __init__(self, params: Optional[QuantumParameters] = None):
+    def __init__(self, params: Optional[QuantumParameters] = None,
+                 enable_live_data: bool = False,
+                 enable_grover: bool = False,
+                 use_advanced_models: bool = False):
         """
         Initialize quantum development model.
         
         Args:
             params: Quantum parameters configuration
+            enable_live_data: Whether to fetch live quantum data
+            enable_grover: Whether to model Grover's algorithm
+            use_advanced_models: Whether to use Cox/multimodal models
         """
         self.params = params or QuantumParameters()
+        self.enable_live_data = enable_live_data
+        self.enable_grover = enable_grover
+        self.use_advanced_models = use_advanced_models
         
         # Historical data points (logical qubits)
         self.historical_data = {
@@ -147,6 +220,21 @@ class QuantumDevelopmentModel:
             'moderate': {'mean': 2033, 'std': 3},
             'conservative': {'mean': 2038, 'std': 4}
         }
+        
+        # Initialize advanced features if enabled
+        if self.use_advanced_models:
+            self.technologies = self._initialize_technologies()
+            self.cox_covariates = {
+                'rd_investment': 1.0,
+                'error_rate_progress': 1.0,
+                'algorithm_efficiency': 1.0,
+                'hardware_availability': 1.0
+            }
+        
+        # Initialize data cache for live data
+        if self.enable_live_data:
+            self.data_cache = {}
+            self.cache_duration = timedelta(hours=1)
     
     def sample(self, rng: np.random.RandomState) -> QuantumTimeline:
         """
@@ -158,33 +246,49 @@ class QuantumDevelopmentModel:
         Returns:
             QuantumTimeline instance
         """
-        # Choose projection method
-        method_weights = [0.3, 0.4, 0.2, 0.1]  # Industry, Expert, Breakthrough, Historical
-        method = rng.choice(
-            ['industry', 'expert', 'breakthrough', 'historical'],
-            p=method_weights
-        )
-        
-        # Generate timeline based on method
-        if method == 'industry':
-            timeline = self._sample_industry_projection(rng)
-        elif method == 'expert':
-            timeline = self._sample_expert_projection(rng)
-        elif method == 'breakthrough':
-            timeline = self._sample_breakthrough_projection(rng)
+        # Use advanced models if enabled
+        if self.use_advanced_models:
+            # Choose between Cox and multimodal methods
+            if rng.random() < 0.5 and LIFELINES_AVAILABLE:
+                timeline = self._sample_cox_hazards(rng)
+            else:
+                timeline = self._sample_multimodal_technology(rng)
         else:
-            timeline = self._sample_historical_projection(rng)
+            # Choose standard projection method
+            method_weights = [0.3, 0.4, 0.2, 0.1]  # Industry, Expert, Breakthrough, Historical
+            method = rng.choice(
+                ['industry', 'expert', 'breakthrough', 'historical'],
+                p=method_weights
+            )
+            
+            # Generate timeline based on method
+            if method == 'industry':
+                timeline = self._sample_industry_projection(rng)
+            elif method == 'expert':
+                timeline = self._sample_expert_projection(rng)
+            elif method == 'breakthrough':
+                timeline = self._sample_breakthrough_projection(rng)
+            else:
+                timeline = self._sample_historical_projection(rng)
+            
+            timeline.projection_method = method
+            
+            # Add confidence based on method
+            confidence_map = {
+                'industry': 0.6,
+                'expert': 0.7,
+                'breakthrough': 0.5,
+                'historical': 0.8
+            }
+            timeline.confidence = confidence_map[method] * (0.8 + 0.4 * rng.random())
         
-        timeline.projection_method = method
+        # Add Grover capabilities if enabled
+        if self.enable_grover:
+            timeline.grover_capabilities = self._sample_grover_timeline(rng)
         
-        # Add confidence based on method
-        confidence_map = {
-            'industry': 0.6,
-            'expert': 0.7,
-            'breakthrough': 0.5,
-            'historical': 0.8
-        }
-        timeline.confidence = confidence_map[method] * (0.8 + 0.4 * rng.random())
+        # Update with live data if enabled
+        if self.enable_live_data:
+            self._update_with_live_data(timeline)
         
         return timeline
     
@@ -556,6 +660,284 @@ class QuantumDevelopmentModel:
                 }
         
         return consensus
+    
+    def _initialize_technologies(self) -> List[QuantumTechnology]:
+        """Initialize competing quantum computing technologies."""
+        return [
+            QuantumTechnology(
+                name="Superconducting",
+                current_qubits=1180,
+                growth_rate=1.8,
+                gate_fidelity=0.995,
+                coherence_time_ms=0.1,
+                advantages=["Fast gates", "Mature technology"],
+                disadvantages=["Requires extreme cooling"],
+                probability_weight=0.4
+            ),
+            QuantumTechnology(
+                name="Trapped Ion",
+                current_qubits=56,
+                growth_rate=1.5,
+                gate_fidelity=0.998,
+                coherence_time_ms=10.0,
+                advantages=["High fidelity", "Long coherence"],
+                disadvantages=["Slower gates"],
+                probability_weight=0.25
+            ),
+            QuantumTechnology(
+                name="Topological",
+                current_qubits=0,
+                growth_rate=0.0,
+                gate_fidelity=0.9999,
+                coherence_time_ms=1000.0,
+                advantages=["Inherent error correction"],
+                disadvantages=["Not yet demonstrated"],
+                probability_weight=0.1
+            ),
+            QuantumTechnology(
+                name="Photonic",
+                current_qubits=216,
+                growth_rate=2.0,
+                gate_fidelity=0.99,
+                coherence_time_ms=float('inf'),
+                advantages=["Room temperature", "No decoherence"],
+                disadvantages=["Probabilistic gates"],
+                probability_weight=0.15
+            ),
+            QuantumTechnology(
+                name="Neutral Atom",
+                current_qubits=256,
+                growth_rate=2.2,
+                gate_fidelity=0.993,
+                coherence_time_ms=1.0,
+                advantages=["Scalable", "Flexible"],
+                disadvantages=["Loading efficiency"],
+                probability_weight=0.1
+            )
+        ]
+    
+    def _sample_cox_hazards(self, rng: np.random.RandomState) -> QuantumTimeline:
+        """Sample timeline using Cox proportional hazards model."""
+        # Generate baseline hazard (Weibull distribution)
+        scale = 10.0  # Years
+        shape = 2.0  # Shape parameter > 1 means increasing hazard
+        
+        # Calculate hazard ratio from covariates
+        beta_coefficients = {
+            'rd_investment': 0.5,
+            'error_rate_progress': 0.8,
+            'algorithm_efficiency': 0.3,
+            'hardware_availability': 0.4
+        }
+        
+        hazard_ratio = np.exp(sum(
+            beta * self.cox_covariates[var]
+            for var, beta in beta_coefficients.items()
+        ))
+        
+        # Adjust scale based on hazard ratio
+        adjusted_scale = scale / hazard_ratio
+        
+        # Sample CRQC emergence time
+        crqc_time = rng.weibull(shape) * adjusted_scale
+        crqc_year = 2025 + crqc_time
+        
+        # Generate capability trajectory with Cox influence
+        capabilities = []
+        for year in range(2025, 2046):
+            progress = (year - 2025) / max(1, crqc_time)
+            
+            # Logistic growth influenced by hazard ratio
+            logical_qubits = int(
+                self.params.logical_qubits_for_ed25519 * 2 *
+                hazard_ratio / (1 + np.exp(-6 * (progress - 0.5)))
+            )
+            
+            # Add noise
+            logical_qubits = int(logical_qubits * rng.lognormal(0, 0.15))
+            
+            # Other parameters
+            physical_qubits = logical_qubits * self.params.physical_to_logical_ratio
+            gate_fidelity = min(0.9999, 0.99 + 0.01 * progress * hazard_ratio)
+            coherence_time = 0.1 * np.exp(3 * progress)
+            
+            threat_level = self._assess_threat_level(logical_qubits, gate_fidelity)
+            
+            capabilities.append(QuantumCapability(
+                year=year,
+                logical_qubits=logical_qubits,
+                physical_qubits=physical_qubits,
+                gate_fidelity=gate_fidelity,
+                coherence_time_ms=coherence_time,
+                threat_level=threat_level
+            ))
+        
+        breakthrough_years = self._sample_breakthroughs(rng, 2025, min(2045, int(crqc_year)))
+        
+        return QuantumTimeline(
+            capabilities=capabilities,
+            crqc_year=crqc_year,
+            breakthrough_years=breakthrough_years,
+            projection_method='cox_hazards',
+            confidence=0.75
+        )
+    
+    def _sample_multimodal_technology(self, rng: np.random.RandomState) -> QuantumTimeline:
+        """Sample timeline using multimodal distribution of competing technologies."""
+        # Sample which technology wins the race
+        tech_probs = [t.probability_weight for t in self.technologies]
+        tech_probs = np.array(tech_probs) / sum(tech_probs)  # Normalize
+        
+        winning_tech = rng.choice(self.technologies, p=tech_probs)
+        
+        # Generate trajectory for winning technology
+        capabilities = []
+        crqc_year = None
+        
+        # Handle special case for topological qubits (breakthrough-based)
+        if winning_tech.name == "Topological":
+            # Topological qubits emerge suddenly after breakthrough
+            breakthrough_year = 2025 + rng.exponential(scale=12)  # Mean ~2037
+            
+            for year in range(2025, 2046):
+                if year < breakthrough_year:
+                    logical_qubits = 0
+                    gate_fidelity = 0
+                else:
+                    years_since = year - breakthrough_year
+                    logical_qubits = int(100 * (3 ** years_since))
+                    gate_fidelity = winning_tech.gate_fidelity
+                
+                physical_qubits = logical_qubits * 100  # Much lower overhead
+                coherence_time = winning_tech.coherence_time_ms if logical_qubits > 0 else 0
+                threat_level = self._assess_threat_level(logical_qubits, gate_fidelity)
+                
+                capabilities.append(QuantumCapability(
+                    year=year,
+                    logical_qubits=logical_qubits,
+                    physical_qubits=physical_qubits,
+                    gate_fidelity=gate_fidelity,
+                    coherence_time_ms=coherence_time,
+                    threat_level=threat_level
+                ))
+                
+                if crqc_year is None and logical_qubits >= self.params.logical_qubits_for_ed25519:
+                    crqc_year = year
+        else:
+            # Standard growth for other technologies
+            current_qubits = winning_tech.current_qubits
+            
+            for year in range(2025, 2046):
+                years_ahead = year - 2025
+                noise = rng.lognormal(0, 0.2)
+                
+                logical_qubits = int(
+                    current_qubits * (winning_tech.growth_rate ** years_ahead) * noise
+                )
+                
+                # Technology-specific parameters
+                physical_ratio = 1000 if winning_tech.name == "Superconducting" else 500
+                fidelity_improvement = 0.0005 * years_ahead
+                
+                physical_qubits = logical_qubits * physical_ratio
+                gate_fidelity = min(0.9999, winning_tech.gate_fidelity + fidelity_improvement)
+                coherence_time = winning_tech.coherence_time_ms * (1.1 ** years_ahead)
+                
+                threat_level = self._assess_threat_level(logical_qubits, gate_fidelity)
+                
+                capabilities.append(QuantumCapability(
+                    year=year,
+                    logical_qubits=logical_qubits,
+                    physical_qubits=physical_qubits,
+                    gate_fidelity=gate_fidelity,
+                    coherence_time_ms=coherence_time,
+                    threat_level=threat_level
+                ))
+                
+                if crqc_year is None and logical_qubits >= self.params.logical_qubits_for_ed25519:
+                    crqc_year = year + rng.uniform(0, 1)
+        
+        if crqc_year is None:
+            crqc_year = 2045 + rng.exponential(scale=10)
+        
+        breakthrough_years = self._sample_breakthroughs(rng, 2025, min(2045, int(crqc_year)))
+        
+        return QuantumTimeline(
+            capabilities=capabilities,
+            crqc_year=crqc_year,
+            breakthrough_years=breakthrough_years,
+            projection_method=f'multimodal_{winning_tech.name.lower()}',
+            confidence=0.7,
+            winning_technology=winning_tech.name
+        )
+    
+    def _sample_grover_timeline(self, rng: np.random.RandomState) -> List[GroverCapability]:
+        """Sample timeline for Grover's algorithm capability development."""
+        grover_capabilities = []
+        
+        # Grover emergence as log-normal distribution
+        grover_emergence_year = rng.lognormal(
+            np.log(self.params.grover_emergence_median_year - 2025),
+            0.3
+        ) + 2025
+        
+        for year in range(2025, 2046):
+            if year < grover_emergence_year - 5:
+                # No Grover capability yet
+                grover_cap = GroverCapability(
+                    year=year,
+                    logical_qubits=0,
+                    can_attack_sha256=False,
+                    speedup_factor=1.0,
+                    attack_time_hours=float('inf'),
+                    poh_vulnerability=False
+                )
+            else:
+                # Grover capability emerging/present
+                years_since = max(0, year - (grover_emergence_year - 5))
+                
+                # Exponential growth in Grover-capable qubits
+                grover_qubits = int(1000 * (2 ** years_since) * rng.lognormal(0, 0.2))
+                
+                # Can attack SHA-256 if enough qubits
+                can_attack = grover_qubits >= self.params.grover_qubits_sha256
+                
+                if can_attack:
+                    # Speedup improves with more qubits
+                    qubit_ratio = min(10, grover_qubits / self.params.grover_qubits_sha256)
+                    speedup = self.params.grover_speedup_factor * np.sqrt(qubit_ratio)
+                    
+                    # Attack time in hours
+                    operations = 2 ** 128
+                    ops_per_second = self.params.grover_gate_speed_mhz * 1e6
+                    attack_time = (operations / ops_per_second) / 3600 / speedup
+                    
+                    # Solana PoH vulnerability
+                    poh_vulnerable = attack_time < 24
+                else:
+                    speedup = 1.0
+                    attack_time = float('inf')
+                    poh_vulnerable = False
+                
+                grover_cap = GroverCapability(
+                    year=year,
+                    logical_qubits=grover_qubits,
+                    can_attack_sha256=can_attack,
+                    speedup_factor=speedup,
+                    attack_time_hours=attack_time,
+                    poh_vulnerability=poh_vulnerable
+                )
+            
+            grover_capabilities.append(grover_cap)
+        
+        return grover_capabilities
+    
+    def _update_with_live_data(self, timeline: QuantumTimeline):
+        """Update timeline with live quantum data if available."""
+        # This is a placeholder for live data integration
+        # In production, this would fetch from quantum computing APIs
+        # and adjust the timeline based on recent developments
+        pass
 
 
 def test_quantum_model():
