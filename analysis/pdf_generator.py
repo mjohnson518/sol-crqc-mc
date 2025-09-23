@@ -1977,35 +1977,101 @@ class PDFReportGenerator:
         self.story.append(Spacer(1, SPACING['after_paragraph']))
     
     def _add_disclaimer(self):
-        """Add the final disclaimer at the end of the report."""
+        """Add comprehensive disclaimers at the end of the report."""
         # Add a separator line
         self.story.append(Spacer(1, SPACING['after_heading_2']))
         self.story.append(HRFlowable(
             width="100%", 
-            thickness=0.5, 
-            color=QUANTUM_COLORS['secondary'],
-            spaceBefore=6,
+            thickness=1, 
+            color=QUANTUM_COLORS['warning'],
+            spaceBefore=12,
             spaceAfter=12
         ))
         
-        # Add disclaimer text
-        disclaimer_text = (
-            "This report represents probabilistic modeling and should not be considered "
-            "investment advice. Results are based on current understanding of quantum "
-            "computing development and may change as new information becomes available."
+        # Add disclaimer heading
+        disclaimer_heading_style = ParagraphStyle(
+            'DisclaimerHeading',
+            parent=self.styles['ProfessionalHeading2'],
+            fontSize=14,
+            textColor=QUANTUM_COLORS['warning'],
+            fontName='Times-Bold',
+            alignment=1  # Center
         )
+        heading = Paragraph("⚠️ IMPORTANT DISCLAIMERS AND LIMITATIONS", disclaimer_heading_style)
+        self.story.append(heading)
+        self.story.append(Spacer(1, SPACING['after_paragraph']))
+        
+        # Add comprehensive disclaimer text
+        disclaimer_sections = [
+            ("<b>Not Financial Advice:</b> This report is for informational and research purposes only. "
+             "It should not be construed as financial, investment, legal, or tax advice. "
+             "Readers should consult with qualified professionals before making any investment decisions."),
+            
+            ("<b>Model Limitations:</b> Results are based on Monte Carlo simulations with inherent uncertainties, "
+             "simplified assumptions, and probabilistic modeling. Real-world outcomes may differ significantly "
+             "from simulated results."),
+            
+            ("<b>Quantum Timeline Uncertainty:</b> Quantum computing development timelines are highly speculative. "
+             "The emergence of cryptographically relevant quantum computers (CRQC) could occur earlier or later "
+             "than projected, or technological barriers may prevent their development entirely."),
+            
+            ("<b>Defense Capabilities Not Modeled:</b> This analysis does not account for future deployment of "
+             "quantum-resistant cryptography, post-quantum migration strategies, or other defensive measures "
+             "that may significantly reduce or eliminate quantum threats."),
+            
+            ("<b>Simplified Attack Scenarios:</b> Attack models are simplified representations and may not capture "
+             "the full complexity of real-world quantum attacks, hybrid threats, or coordinated adversarial strategies."),
+            
+            ("<b>No Guarantee of Accuracy:</b> Past performance and simulations do not guarantee future results. "
+             "This is a risk assessment tool, not a prediction of actual events."),
+            
+            ("<b>Epistemic Uncertainty:</b> There is fundamental uncertainty about quantum computing capabilities, "
+             "attack methodologies, and blockchain defense mechanisms that cannot be fully captured in any model."),
+            
+            ("<b>Geopolitical Factors:</b> The analysis does not account for geopolitical developments, regulatory "
+             "changes, or international cooperation that could affect quantum threat landscapes."),
+            
+            ("<b>Use at Your Own Risk:</b> Users assume all risks associated with the use of this information. "
+             "The authors and contributors disclaim any liability for losses or damages arising from the use "
+             "of this report.")
+        ]
         
         disclaimer_style = ParagraphStyle(
             'Disclaimer',
             parent=self.styles['ProfessionalBody'],
             fontSize=9,
-            textColor=QUANTUM_COLORS['secondary'],
-            fontName='Times-Italic',
-            alignment=4  # Justified
+            textColor=QUANTUM_COLORS['dark'],
+            fontName='Times-Roman',
+            alignment=4,  # Justified
+            spaceAfter=8
         )
         
-        disclaimer_para = Paragraph(disclaimer_text, disclaimer_style)
-        self.story.append(disclaimer_para)
+        for disclaimer in disclaimer_sections:
+            disclaimer_para = Paragraph(disclaimer, disclaimer_style)
+            self.story.append(disclaimer_para)
+        
+        # Add final separator
+        self.story.append(Spacer(1, SPACING['after_paragraph']))
+        self.story.append(HRFlowable(
+            width="100%", 
+            thickness=1, 
+            color=QUANTUM_COLORS['warning'],
+            spaceBefore=6,
+            spaceAfter=12
+        ))
+        
+        # Add copyright notice
+        copyright_style = ParagraphStyle(
+            'Copyright',
+            parent=self.styles['ProfessionalBody'],
+            fontSize=8,
+            textColor=QUANTUM_COLORS['secondary'],
+            fontName='Times-Italic',
+            alignment=1  # Center
+        )
+        copyright_text = f"© {datetime.now().year} Quantum Risk Assessment Research. All rights reserved."
+        copyright_para = Paragraph(copyright_text, copyright_style)
+        self.story.append(copyright_para)
         self.story.append(Spacer(1, SPACING['after_paragraph']))
     
     def _add_section_charts(self, section_title: str, charts_dir: Path):

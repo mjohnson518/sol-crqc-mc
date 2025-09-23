@@ -161,6 +161,24 @@ class ReportGenerator:
         header.append(f"**Author:** {self.config.author}")
         header.append("")
         header.append("---")
+        header.append("")
+        
+        # Add prominent disclaimers
+        header.append("## ⚠️ Important Disclaimers")
+        header.append("")
+        header.append("**This report is for informational and research purposes only.**")
+        header.append("")
+        header.append("- **Not Financial Advice**: This analysis should not be construed as financial, investment, legal, or tax advice.")
+        header.append("- **Model Limitations**: Results are based on Monte Carlo simulations with inherent uncertainties and assumptions.")
+        header.append("- **Quantum Timeline Uncertainty**: Quantum computing development timelines are highly speculative and may differ significantly from projections.")
+        header.append("- **No Guarantee of Accuracy**: Past performance and simulations do not guarantee future results.")
+        header.append("- **Risk Assessment Only**: This is a risk assessment tool, not a prediction of actual events.")
+        header.append("- **Simplified Models**: Real-world quantum threats may evolve differently than modeled.")
+        header.append("- **Defense Capabilities Not Modeled**: Future quantum-resistant cryptography deployment not included.")
+        header.append("")
+        header.append("**Users should conduct their own research and consult with qualified professionals before making any decisions.**")
+        header.append("")
+        header.append("---")
         
         return "\n".join(header)
     
