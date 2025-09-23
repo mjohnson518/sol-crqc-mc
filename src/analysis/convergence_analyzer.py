@@ -159,6 +159,96 @@ class ConvergenceAnalyzer:
                     self.converged_at[var_name] = iteration
                     logger.info(f"{var_name} converged at iteration {iteration}")
     
+    def check_early_stopping(
+        self,
+        iteration: int,
+        variance_threshold: float = 0.005,
+        mean_threshold: float = 0.001
+    ) -> Tuple[bool, Dict[str, Any]]:
+        """
+        Check if simulation can stop early due to convergence.
+        
+        Early stopping criteria:
+        - Variance stable (<0.5% change over window)
+        - Mean stable (<0.1% change over window)
+        - Minimum iterations completed
+        - All tracked variables converged
+        
+        Args:
+            iteration: Current iteration number
+            variance_threshold: Maximum allowed variance change
+            mean_threshold: Maximum allowed mean change
+            
+        Returns:
+            Tuple of (should_stop, diagnostics)
+        """
+        # Don't stop before minimum iterations
+        if iteration < self.min_iterations:
+            return False, {"reason": "Below minimum iterations"}
+        
+        # Check each tracked variable
+        all_converged = True
+        diagnostics = {}
+        
+        for var_name, data_list in self.data.items():
+            if len(data_list) < self.window_size * 2:
+                all_converged = False
+                diagnostics[var_name] = "Insufficient data"
+                continue
+            
+            # Get recent and older windows
+            data_array = np.array(data_list)
+            recent = data_array[-self.window_size:]
+            older = data_array[-2*self.window_size:-self.window_size]
+            
+            # Calculate stability metrics
+            recent_mean = np.mean(recent)
+            older_mean = np.mean(older)
+            recent_var = np.var(recent)
+            older_var = np.var(older)
+            
+            # Check mean stability
+            if older_mean != 0:
+                mean_change = abs(recent_mean - older_mean) / abs(older_mean)
+            else:
+                mean_change = abs(recent_mean - older_mean)
+            
+            # Check variance stability
+            if older_var != 0:
+                var_change = abs(recent_var - older_var) / older_var
+            else:
+                var_change = abs(recent_var - older_var)
+            
+            # Check convergence
+            var_stable = var_change < variance_threshold
+            mean_stable = mean_change < mean_threshold
+            
+            variable_converged = var_stable and mean_stable
+            
+            if not variable_converged:
+                all_converged = False
+            
+            diagnostics[var_name] = {
+                "converged": variable_converged,
+                "mean_change": mean_change,
+                "variance_change": var_change,
+                "current_mean": recent_mean,
+                "current_std": np.std(recent)
+            }
+        
+        # Additional check: ensure sufficient effective sample size
+        min_effective_size = 1000
+        for var_name in self.data:
+            metrics = self._calculate_metrics(var_name, iteration)
+            if metrics.effective_sample_size < min_effective_size:
+                all_converged = False
+                diagnostics[f"{var_name}_effective_size"] = metrics.effective_sample_size
+        
+        diagnostics["all_converged"] = all_converged
+        diagnostics["iteration"] = iteration
+        
+        return all_converged, diagnostics
+    
     def _calculate_metrics(self, var_name: str, iteration: int) -> ConvergenceMetrics:
         """
         Calculate convergence metrics for a variable.

@@ -143,6 +143,12 @@ class SimulationParameters:
     enable_copulas: bool = True  # Use copulas for joint distributions
     enable_sensitivity_analysis: bool = True  # Run sensitivity analysis
     
+    # Dynamic calibration options
+    calibrate_from_live_data: bool = False  # Use live data to calibrate parameters
+    cache_duration_hours: float = 1.0  # How long to cache live data
+    weekly_time_steps: bool = False  # Use weekly time steps for short-term modeling
+    bootstrap_iterations: int = 1000  # Number of bootstrap samples for statistics
+    
     # Output settings
     output_dir: Path = field(default_factory=lambda: Path("data/output"))
     save_raw_results: bool = True
