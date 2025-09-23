@@ -71,7 +71,7 @@ sol-qv-mc/
     └── convergence_analysis.md # Convergence methodology
 ```
 
-## Core Models (Enhanced v2)
+## Core Models
 
 ### 1. Quantum Timeline Model
 - **Cox Proportional Hazards**: Time-dependent covariates for R&D investment and error correction progress
