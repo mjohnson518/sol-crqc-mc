@@ -454,7 +454,7 @@ class CompetingRisksCRQC:
                 median_time = self.time_horizon
             
             results[name] = {
-                "cumulative_incidence_at_10y": cumulative_incidence[120],  # 10 years
+                "cumulative_incidence_at_10y": cumulative_incidence[120] if len(cumulative_incidence) > 120 else 0,  # 10 years
                 "median_time": median_time,
                 "max_incidence": np.max(cumulative_incidence)
             }
