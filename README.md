@@ -71,27 +71,78 @@ sol-qv-mc/
     └── convergence_analysis.md # Convergence methodology
 ```
 
-## Core Models
+## Core Models (Enhanced v2)
 
 ### 1. Quantum Timeline Model
+- **Cox Proportional Hazards**: Time-dependent covariates for R&D investment and error correction progress
+- **Multimodal Distributions**: Mixture of Gaussians for competing qubit technologies (superconducting, trapped-ion, topological)
+- **Grover's Algorithm Modeling**: SHA-256 vulnerability assessment with ~2^128 operations for preimage attacks
+- **Live Data Integration**: API hooks for real-time quantum computing metrics (when enabled)
 - Projects CRQC emergence using multiple methods (industry, expert, breakthrough, historical)
-- Models qubit growth rates and technological breakthroughs
-- Estimates time to break Ed25519 signatures
 
-### 2. Network State Model  
-- Simulates validator dynamics and stake distribution
-- Models migration to quantum-safe cryptography
-- Tracks network resilience over time
+### 2. Network State Model
+- **Graph-Based Topology**: NetworkX-powered validator network modeling with Barabási-Albert preferential attachment
+- **Dynamic Stake Redistribution**: Realistic stake flow modeling based on migration status and performance
+- **Attack Propagation**: Simulates how quantum attacks spread through the validator network
+- **Centrality Analysis**: Betweenness and degree centrality metrics for critical validator identification
+- Models migration to quantum-safe cryptography with logistic curves
 
 ### 3. Attack Scenarios Model
+- **Hybrid Attacks**: Combined Shor's + Grover's + classical side-channel attacks
+- **Agent-Based Modeling**: Mesa framework for adversarial strategy simulation (when enabled)
+- **PoH-Specific Vulnerabilities**: Grover's algorithm impact on Proof of History forgery
+- **Time-Dependent Success**: Exponential distribution for attack execution times
 - Evaluates feasible attack types based on quantum capabilities
-- Calculates success probabilities for different attacks
-- Identifies optimal attack windows
 
 ### 4. Economic Impact Model
-- Quantifies direct losses from successful attacks
-- Models market reactions and panic selling
-- Simulates recovery trajectories
+- **System Dynamics**: Stocks and flows model (L = D + M * C + R)
+- **VAR Forecasting**: Vector Autoregression for recovery trajectory modeling
+- **Cross-Chain Contagion**: Spillover effects to other blockchain ecosystems
+- **Regulatory Response**: Branching scenarios for government intervention
+- **DeFi Cascade Amplification**: 10-20% additional losses if PoH is compromised
+
+## Model Interconnections
+
+### DAG-Based Orchestration
+The simulation uses a directed acyclic graph (DAG) to manage model dependencies:
+- **Quantum → Network & Attacks**: CRQC emergence timing influences network migration urgency
+- **Network → Attacks & Economic**: Validator topology affects attack success and economic impact
+- **Attacks → Economic**: Successful attacks drive economic losses
+
+### Copula-Based Correlations
+Key variable correlations (when enabled):
+- Qubit growth rate ↔ CRQC year: -0.7 correlation
+- CRQC proximity ↔ Attack success: -0.6 correlation  
+- Migration progress ↔ Attack success: -0.5 correlation
+- Stake concentration ↔ Economic loss: +0.6 correlation
+- Grover qubits ↔ PoH vulnerability: +0.8 correlation
+
+## Configuration Options
+
+### Advanced Features (config.py)
+Enable enhanced models with backward-compatible flags:
+```python
+# Advanced statistical models
+use_advanced_models = False  # Cox hazards, multimodal distributions
+
+# Live data integration
+enable_live_data = False  # API connections for real-time metrics
+
+# Grover's algorithm modeling
+enable_grover_modeling = False  # SHA-256 and PoH vulnerabilities
+
+# Hybrid attack scenarios
+enable_hybrid_attacks = False  # Combined quantum-classical attacks
+
+# Economic enhancements
+use_system_dynamics = False  # Stocks and flows modeling
+use_var_forecast = False  # Vector autoregression
+model_cross_chain = False  # Cross-chain contagion
+
+# Computational optimizations
+enable_gpu_acceleration = False  # GPU support (requires PyTorch)
+enable_sensitivity_analysis = False  # SALib sensitivity analysis
+```
 
 ## Installation
 
@@ -100,8 +151,15 @@ sol-qv-mc/
 git clone https://github.com/mjohnson518/sol-crqc-mc.git
 cd sol-qv-mc
 
-# Install dependencies
+# Install core dependencies
 pip install -r requirements.txt
+
+# Optional: Install enhanced features
+# For all advanced models:
+pip install networkx salib plotly statsmodels scipy joblib requests mesa reportlab fpdf lifelines
+
+# For GPU acceleration (if CUDA available):
+pip install torch
 ```
 
 ## Quick Start

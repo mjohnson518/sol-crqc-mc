@@ -27,6 +27,7 @@ This document provides detailed explanations for all parameters used in the Sola
 2. [Network State Parameters](#network-state-parameters)
 3. [Economic Impact Parameters](#economic-impact-parameters)
 4. [Simulation Control Parameters](#simulation-control-parameters)
+5. [Enhanced Model Parameters (v2)](#enhanced-model-parameters-v2)
 
 ---
 
@@ -296,6 +297,90 @@ export N_ITERATIONS=50000
 export RANDOM_SEED=123
 export QUANTUM_LOGICAL_QUBITS_FOR_ED25519=2000
 ```
+
+---
+
+## Enhanced Model Parameters (v2)
+
+### Advanced Quantum Modeling
+
+#### `use_advanced_models = False`
+- **Description**: Enable Cox proportional hazards and multimodal distributions
+- **Rationale**: More sophisticated statistical modeling for quantum timeline
+- **Note**: Increases computational cost but improves accuracy
+
+#### `enable_grover_modeling = False`
+- **Description**: Model Grover's algorithm impact on SHA-256 and PoH
+- **Rationale**: Grover provides quadratic speedup for hash function attacks
+- **Note**: Critical for Solana's Proof of History vulnerability assessment
+
+#### `grover_qubits_sha256 = 6000`
+- **Description**: Logical qubits needed for SHA-256 attacks via Grover
+- **Reference**: Grassl et al. (2016) - Applying Grover's algorithm to AES
+- **Note**: Enables ~2^128 operations for preimage attacks
+
+#### `grover_emergence_median_year = 2032`
+- **Description**: Expected year for Grover-capable quantum computers
+- **Rationale**: Later than Shor due to higher qubit requirements
+- **Note**: Subject to breakthrough uncertainty
+
+### Network Enhancement Parameters
+
+#### `enable_graph_modeling = True`
+- **Description**: Use NetworkX for graph-based validator topology
+- **Rationale**: More realistic network structure with preferential attachment
+- **Note**: Enables centrality analysis and attack propagation
+
+#### `barabasi_albert_m = 3`
+- **Description**: Number of edges for preferential attachment
+- **Rationale**: Creates scale-free network matching real validator patterns
+- **Reference**: Barabási–Albert model for network growth
+
+### Attack Scenario Parameters
+
+#### `enable_hybrid_attacks = False`
+- **Description**: Model combined quantum-classical attacks
+- **Rationale**: Realistic adversaries will use all available tools
+- **Note**: Success probability = P(Shor) × P(Grover) × P(Classical)
+
+#### `enable_agent_based_model = False`
+- **Description**: Use Mesa for adversarial strategy modeling
+- **Rationale**: Simulates different attacker profiles and behaviors
+- **Note**: Requires Mesa library installation
+
+### Economic Enhancement Parameters
+
+#### `use_system_dynamics = False`
+- **Description**: Stocks and flows model for economic impact
+- **Formula**: L = D + M × C + R (Direct + Market × Confidence + Recovery)
+- **Note**: Captures feedback loops and time delays
+
+#### `use_var_forecast = False`
+- **Description**: Vector Autoregression for recovery modeling
+- **Rationale**: Multivariate time series for TVL, price, volume
+- **Note**: Requires statsmodels library
+
+#### `model_cross_chain = False`
+- **Description**: Model spillover effects to other blockchains
+- **Rationale**: Major attacks affect entire crypto ecosystem
+- **Note**: Adds 20-40% to total economic impact
+
+### Computational Parameters
+
+#### `enable_gpu_acceleration = False`
+- **Description**: Use PyTorch for GPU-accelerated sampling
+- **Rationale**: 10-100x speedup for large simulations
+- **Note**: Requires CUDA-capable GPU and PyTorch
+
+#### `enable_sensitivity_analysis = False`
+- **Description**: Sobol indices for parameter importance
+- **Rationale**: Identifies most influential parameters
+- **Note**: Requires SALib library
+
+#### `enable_copulas = True`
+- **Description**: Use copulas for correlated variables
+- **Rationale**: Realistic dependencies between model components
+- **Note**: Key correlations include qubit growth ↔ CRQC timing
 
 ---
 
