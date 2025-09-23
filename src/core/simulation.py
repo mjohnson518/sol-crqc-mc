@@ -857,30 +857,38 @@ class MonteCarloSimulation:
             return {}
         
         try:
-            # Get attack details
-            attack_type = attack_results.get('attack_type', 'Unknown')
-            attack_successful = attack_results.get('attack_successful', False)
+            # Prepare quantum capability for ethical model
+            quantum_capability = {
+                'crqc_year': quantum_timeline.get('crqc_year', 2035),
+                'capabilities': quantum_timeline.get('capabilities', []),
+                'attack_type': attack_results.get('attack_type', 'Unknown'),
+                'attack_successful': attack_results.get('attack_successful', False)
+            }
             
             # Get economic loss magnitude
-            total_loss = 0
             if economic_impact and 'economic_loss' in economic_impact:
                 loss = economic_impact['economic_loss']
                 if isinstance(loss, dict):
-                    total_loss = loss.get('total_loss_usd', 0)
+                    quantum_capability['economic_loss_usd'] = loss.get('total_loss_usd', 0)
                 elif hasattr(loss, 'total_loss_usd'):
-                    total_loss = loss.total_loss_usd
+                    quantum_capability['economic_loss_usd'] = loss.total_loss_usd
             
             # Sample ethical scenario
             scenario = self.models['ethical_scenarios'].generate_scenario(
-                rng,
-                attack_type=attack_type,
-                attack_successful=attack_successful,
-                economic_loss_usd=total_loss,
-                quantum_supremacy_year=quantum_timeline.get('crqc_year')
+                quantum_capability=quantum_capability
             )
             
             # Convert to dictionary for serialization
-            return scenario.to_dict() if hasattr(scenario, 'to_dict') else scenario
+            if hasattr(scenario, 'to_dict'):
+                return scenario.to_dict()
+            elif isinstance(scenario, dict):
+                return scenario
+            else:
+                # Try to convert dataclass to dict
+                from dataclasses import asdict, is_dataclass
+                if is_dataclass(scenario):
+                    return asdict(scenario)
+                return {}
             
         except Exception as e:
             logger.warning(f"Failed to calculate ethical impact: {e}")

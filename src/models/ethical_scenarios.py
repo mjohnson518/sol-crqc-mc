@@ -191,19 +191,30 @@ class EthicalScenario:
                 narrative += f"- {rec}\n"
         
         return narrative
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert scenario to dictionary for serialization."""
+        from dataclasses import asdict
+        result = asdict(self)
+        # Convert Enum types to their values
+        result['actor_type'] = self.actor_type.value
+        result['geopolitical_context'] = self.geopolitical_context.value
+        if self.ethical_impact:
+            result['ethical_impact']['privacy_impact_level'] = self.ethical_impact.privacy_impact_level.value
+        return result
 
 
 class EthicalScenariosModel:
     """Model for generating and analyzing ethical scenarios."""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
         Initialize ethical scenarios model.
         
         Args:
-            config: Configuration parameters
+            config: Configuration parameters (optional)
         """
-        self.config = config
+        self.config = config or {}
         self.scenarios_db = self._initialize_scenarios()
         self.state_actors = self._initialize_state_actors()
         
