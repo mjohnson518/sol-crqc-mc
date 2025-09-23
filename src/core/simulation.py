@@ -20,6 +20,21 @@ from src.core.random_engine import RandomEngine
 from src.core.results_collector import ResultsCollector
 from src.analysis.convergence_analyzer import ConvergenceAnalyzer, ConvergenceReport
 
+# Import NetworkX for DAG-based model orchestration
+try:
+    import networkx as nx
+    HAS_NETWORKX = True
+except ImportError:
+    HAS_NETWORKX = False
+
+# Import scipy for copulas
+try:
+    from scipy.stats import multivariate_normal, gaussian_kde
+    from scipy.stats import kendalltau
+    HAS_SCIPY = True
+except ImportError:
+    HAS_SCIPY = False
+
 # Setup logging
 logger = logging.getLogger(__name__)
 
@@ -113,6 +128,12 @@ class MonteCarloSimulation:
         
         # Model instances (will be properly initialized when models are implemented)
         self.models = models or {}
+        
+        # Initialize model dependency DAG
+        self.model_dag = self._create_model_dag()
+        
+        # Initialize copula for joint distributions
+        self.copula_correlations = self._initialize_copula_correlations()
         
         # Initialize convergence analyzer if enabled
         self.enable_convergence_tracking = enable_convergence_tracking
@@ -344,7 +365,7 @@ class MonteCarloSimulation:
     
     def _run_single_iteration(self, iteration_id: int, seed: int) -> SimulationResult:
         """
-        Execute one complete simulation iteration.
+        Execute one complete simulation iteration with model interconnections.
         
         Args:
             iteration_id: Unique identifier for this iteration
@@ -358,30 +379,96 @@ class MonteCarloSimulation:
         # Create RNG for this iteration
         rng = np.random.RandomState(seed)
         
+        # Store intermediate results for propagation
+        model_outputs = {}
+        
+        # Execute models according to DAG if available
+        if self.model_dag and HAS_NETWORKX:
+            # Execute in topological order to respect dependencies
+            execution_order = list(nx.topological_sort(self.model_dag))
+            logger.debug(f"Executing models in DAG order: {execution_order}")
+        else:
+            # Fallback to sequential execution
+            execution_order = ['quantum_timeline', 'network_state', 'attack_scenarios', 'economic_impact']
+        
         # Step 1: Sample quantum development timeline
         quantum_timeline = self._sample_quantum_timeline(rng)
+        model_outputs['quantum_timeline'] = quantum_timeline
         
-        # Step 2: Sample network state evolution
+        # Apply Grover emergence correlation if available
+        if self.config.quantum.enable_grover_modeling and 'grover_capabilities' in quantum_timeline:
+            grover_cap = quantum_timeline.get('grover_capabilities')
+            if grover_cap and hasattr(grover_cap, 'logical_qubits'):
+                # Correlate Grover qubits with PoH vulnerability
+                poh_vuln = self._apply_copula_correlation(
+                    rng,
+                    'grover_qubits', grover_cap.logical_qubits,
+                    'poh_vulnerability', {'mean': 0.5, 'std': 0.2}
+                )
+                quantum_timeline['poh_vulnerability'] = max(0, min(1, poh_vuln))
+        
+        # Step 2: Sample network state evolution (influenced by quantum timeline)
         network_state = self._sample_network_evolution(rng, quantum_timeline)
+        model_outputs['network_state'] = network_state
         
-        # Step 3: Identify attack opportunities
+        # Apply correlation between migration progress and future attack success
+        if 'migration_progress' in network_state:
+            # Store for later use in attack simulation
+            model_outputs['migration_influence'] = -0.5 * network_state['migration_progress']
+        
+        # Step 3: Identify attack opportunities (influenced by quantum & network)
         attack_opportunities = self._identify_attack_windows(
             quantum_timeline,
             network_state
         )
         
-        # Step 4: Simulate attacks
+        # Apply CRQC year correlation to attack success
+        if quantum_timeline.get('crqc_year'):
+            years_until_crqc = quantum_timeline['crqc_year'] - self.config.start_year
+            attack_boost = max(0, 1 - years_until_crqc / 20)  # Closer CRQC = higher success
+            for opportunity in attack_opportunities:
+                if 'attack_plan' in opportunity:
+                    # Boost attack probabilities based on CRQC proximity
+                    opportunity['crqc_boost'] = attack_boost
+        
+        # Step 4: Simulate attacks (with correlated success rates)
         attack_results = self._simulate_attacks(
             rng,
             attack_opportunities,
             network_state
         )
+        model_outputs['attack_results'] = attack_results
         
-        # Step 5: Calculate economic impact
-        economic_impact = self._calculate_economic_impact(
+        # Apply stake concentration correlation if available
+        if network_state.get('evolution'):
+            evolution = network_state['evolution']
+            crqc_year = quantum_timeline.get('crqc_year', 2035)
+            snapshot = evolution.get_snapshot_at_year(crqc_year)
+            if hasattr(snapshot, 'gini_coefficient'):
+                # Higher concentration = higher impact
+                concentration_factor = 1 + 0.5 * snapshot.gini_coefficient
+                model_outputs['concentration_factor'] = concentration_factor
+        
+        # Step 5: Calculate economic impact (influenced by all previous steps)
+        economic_impact = self._calculate_economic_impact_with_correlations(
             attack_results,
-            network_state
+            network_state,
+            model_outputs,
+            rng
         )
+        
+        # Apply cross-chain contagion correlation
+        if self.config.economic.model_cross_chain and economic_impact.get('economic_loss'):
+            loss = economic_impact['economic_loss']
+            if hasattr(loss, 'immediate_loss_usd'):
+                # Correlate direct loss with cross-chain spillover
+                cross_chain_factor = self._apply_copula_correlation(
+                    rng,
+                    'direct_loss', loss.immediate_loss_usd,
+                    'cross_chain_loss', {'mean': 0.3, 'std': 0.1}
+                )
+                if hasattr(loss, 'cross_chain_contagion') and loss.cross_chain_contagion:
+                    loss.cross_chain_contagion.amplification_factor = max(1.0, 1 + cross_chain_factor)
         
         # Determine first successful attack year
         first_attack_year = self._find_first_attack_year(attack_results)
@@ -585,6 +672,43 @@ class MonteCarloSimulation:
             'attacks_successful': 0,
             'first_success_year': None
         }
+    
+    def _calculate_economic_impact_with_correlations(
+        self,
+        attack_results: Dict[str, Any],
+        network_state: Dict[str, Any],
+        model_outputs: Dict[str, Any],
+        rng: np.random.RandomState
+    ) -> Dict[str, Any]:
+        """
+        Calculate economic impact with model correlations.
+        
+        Args:
+            attack_results: Results of attack simulation
+            network_state: Network state
+            model_outputs: Intermediate model outputs for correlation
+            rng: Random number generator
+            
+        Returns:
+            Dictionary containing economic impact metrics
+        """
+        # Get base economic impact
+        base_impact = self._calculate_economic_impact(attack_results, network_state)
+        
+        # Apply concentration factor if available
+        if 'concentration_factor' in model_outputs:
+            if 'total_loss_usd' in base_impact:
+                base_impact['total_loss_usd'] *= model_outputs['concentration_factor']
+            if 'direct_loss_usd' in base_impact:
+                base_impact['direct_loss_usd'] *= model_outputs['concentration_factor']
+        
+        # Apply PoH vulnerability amplification
+        if 'poh_vulnerability' in model_outputs['quantum_timeline']:
+            poh_factor = 1 + model_outputs['quantum_timeline']['poh_vulnerability']
+            if 'economic_loss' in base_impact and hasattr(base_impact['economic_loss'], 'total_loss_usd'):
+                base_impact['economic_loss'].total_loss_usd *= poh_factor
+        
+        return base_impact
     
     def _calculate_economic_impact(
         self,
@@ -801,6 +925,136 @@ class MonteCarloSimulation:
             logger.warning("Simulation will run with placeholder implementations")
         
         return len(missing) == 0
+    
+    def _create_model_dag(self) -> Optional['nx.DiGraph']:
+        """
+        Create a directed acyclic graph representing model dependencies.
+        
+        Returns:
+            NetworkX DiGraph or None if networkx not available
+        """
+        if not HAS_NETWORKX:
+            logger.debug("NetworkX not available, model DAG disabled")
+            return None
+        
+        # Create directed graph
+        dag = nx.DiGraph()
+        
+        # Define model nodes
+        dag.add_nodes_from([
+            'quantum_timeline',
+            'network_state', 
+            'attack_scenarios',
+            'economic_impact'
+        ])
+        
+        # Define dependencies (edges)
+        # Quantum timeline affects network state and attack scenarios
+        dag.add_edge('quantum_timeline', 'network_state')
+        dag.add_edge('quantum_timeline', 'attack_scenarios')
+        
+        # Network state affects attack scenarios and economic impact
+        dag.add_edge('network_state', 'attack_scenarios')
+        dag.add_edge('network_state', 'economic_impact')
+        
+        # Attack scenarios affect economic impact
+        dag.add_edge('attack_scenarios', 'economic_impact')
+        
+        # Verify DAG is valid
+        if not nx.is_directed_acyclic_graph(dag):
+            logger.error("Model dependencies form a cycle - invalid DAG")
+            return None
+        
+        logger.info(f"Created model DAG with {len(dag.nodes)} nodes and {len(dag.edges)} edges")
+        return dag
+    
+    def _initialize_copula_correlations(self) -> Dict[Tuple[str, str], float]:
+        """
+        Initialize correlation structure for copula-based joint distributions.
+        
+        Returns:
+            Dictionary mapping variable pairs to correlation coefficients
+        """
+        correlations = {}
+        
+        # Define correlations between key variables
+        # Higher qubit growth correlates with earlier CRQC emergence  
+        correlations[('qubit_growth_rate', 'crqc_year')] = -0.7
+        
+        # Earlier CRQC correlates with higher attack success
+        correlations[('crqc_year', 'attack_success')] = -0.6
+        
+        # Network migration progress reduces attack success
+        correlations[('migration_progress', 'attack_success')] = -0.5
+        
+        # Higher stake concentration increases attack impact
+        correlations[('stake_concentration', 'economic_loss')] = 0.6
+        
+        # Grover capability correlates with PoH vulnerability
+        correlations[('grover_qubits', 'poh_vulnerability')] = 0.8
+        
+        # Attack success strongly correlates with economic loss
+        correlations[('attack_success', 'economic_loss')] = 0.9
+        
+        # Cross-chain contagion correlates with total loss
+        correlations[('direct_loss', 'cross_chain_loss')] = 0.4
+        
+        logger.info(f"Initialized {len(correlations)} correlation pairs for copula modeling")
+        return correlations
+    
+    def _apply_copula_correlation(
+        self,
+        rng: np.random.RandomState,
+        var1_name: str,
+        var1_value: float,
+        var2_name: str,
+        var2_params: Dict[str, float]
+    ) -> float:
+        """
+        Apply copula-based correlation to generate correlated variable.
+        
+        Args:
+            rng: Random number generator
+            var1_name: Name of first variable
+            var1_value: Value of first variable  
+            var2_name: Name of second variable
+            var2_params: Parameters for second variable distribution
+            
+        Returns:
+            Correlated value for second variable
+        """
+        if not HAS_SCIPY:
+            # Fallback to independent sampling
+            return var2_params.get('mean', 0) + rng.normal(0, var2_params.get('std', 1))
+        
+        # Get correlation coefficient
+        corr_key = (var1_name, var2_name)
+        correlation = self.copula_correlations.get(corr_key, 0)
+        
+        if correlation == 0:
+            # No correlation, sample independently
+            return var2_params.get('mean', 0) + rng.normal(0, var2_params.get('std', 1))
+        
+        # Create correlation matrix
+        corr_matrix = np.array([[1.0, correlation], [correlation, 1.0]])
+        
+        # Generate correlated normal samples
+        mean = [0, 0]
+        samples = rng.multivariate_normal(mean, corr_matrix, size=1)
+        
+        # Transform to desired distribution
+        # Use inverse CDF transform for target distribution
+        from scipy.stats import norm
+        u2 = norm.cdf(samples[0, 1])  # Convert to uniform [0,1]
+        
+        # Apply target distribution parameters
+        mean2 = var2_params.get('mean', 0)
+        std2 = var2_params.get('std', 1)
+        
+        # Transform uniform to target distribution
+        value2 = norm.ppf(u2, loc=mean2, scale=std2)
+        
+        return value2
     
     def _track_convergence(self, iteration: int, result: SimulationResult) -> None:
         """
