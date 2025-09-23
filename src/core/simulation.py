@@ -48,6 +48,7 @@ class SimulationResult:
     network_state: Dict[str, Any]
     attack_results: Dict[str, Any]
     economic_impact: Dict[str, Any]
+    ethical_impact: Optional[Dict[str, Any]] = None
     first_attack_year: Optional[float] = None
     runtime_seconds: float = 0.0
     
@@ -59,6 +60,7 @@ class SimulationResult:
             'network_state': self.network_state,
             'attack_results': self.attack_results,
             'economic_impact': self.economic_impact,
+            'ethical_impact': self.ethical_impact,
             'first_attack_year': self.first_attack_year,
             'runtime_seconds': self.runtime_seconds
         }
@@ -470,6 +472,16 @@ class MonteCarloSimulation:
                 if hasattr(loss, 'cross_chain_contagion') and loss.cross_chain_contagion:
                     loss.cross_chain_contagion.amplification_factor = max(1.0, 1 + cross_chain_factor)
         
+        # Step 6: Calculate ethical impact (if model available)
+        ethical_impact = None
+        if 'ethical_scenarios' in self.models and self.config.enable_ethical_scenarios:
+            ethical_impact = self._calculate_ethical_impact(
+                rng,
+                attack_results,
+                economic_impact,
+                quantum_timeline
+            )
+        
         # Determine first successful attack year
         first_attack_year = self._find_first_attack_year(attack_results)
         
@@ -481,6 +493,7 @@ class MonteCarloSimulation:
             network_state=network_state,
             attack_results=attack_results,
             economic_impact=economic_impact,
+            ethical_impact=ethical_impact,
             first_attack_year=first_attack_year,
             runtime_seconds=runtime
         )
@@ -820,6 +833,58 @@ class MonteCarloSimulation:
             'total_loss_usd': total_loss,
             'recovery_time_months': 12 if total_loss > 0 else 0
         }
+    
+    def _calculate_ethical_impact(
+        self,
+        rng: np.random.RandomState,
+        attack_results: Dict[str, Any],
+        economic_impact: Dict[str, Any],
+        quantum_timeline: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Calculate ethical and societal impacts of quantum attacks.
+        
+        Args:
+            rng: Random number generator
+            attack_results: Attack simulation results
+            economic_impact: Economic impact results
+            quantum_timeline: Quantum development timeline
+            
+        Returns:
+            Dictionary containing ethical impact assessment
+        """
+        if 'ethical_scenarios' not in self.models:
+            return {}
+        
+        try:
+            # Get attack details
+            attack_type = attack_results.get('attack_type', 'Unknown')
+            attack_successful = attack_results.get('attack_successful', False)
+            
+            # Get economic loss magnitude
+            total_loss = 0
+            if economic_impact and 'economic_loss' in economic_impact:
+                loss = economic_impact['economic_loss']
+                if isinstance(loss, dict):
+                    total_loss = loss.get('total_loss_usd', 0)
+                elif hasattr(loss, 'total_loss_usd'):
+                    total_loss = loss.total_loss_usd
+            
+            # Sample ethical scenario
+            scenario = self.models['ethical_scenarios'].generate_scenario(
+                rng,
+                attack_type=attack_type,
+                attack_successful=attack_successful,
+                economic_loss_usd=total_loss,
+                quantum_supremacy_year=quantum_timeline.get('crqc_year')
+            )
+            
+            # Convert to dictionary for serialization
+            return scenario.to_dict() if hasattr(scenario, 'to_dict') else scenario
+            
+        except Exception as e:
+            logger.warning(f"Failed to calculate ethical impact: {e}")
+            return {}
     
     def _find_first_attack_year(self, attack_results: Dict[str, Any]) -> Optional[float]:
         """
