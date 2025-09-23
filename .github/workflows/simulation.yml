@@ -14,7 +14,7 @@ on:
       enable_enhanced:
         description: 'Enable enhanced models'
         required: false
-        default: 'true'
+        default: true
         type: boolean
 
 jobs:

@@ -142,6 +142,7 @@ class SimulationParameters:
     enable_gpu_acceleration: bool = False  # Use GPU if available
     enable_copulas: bool = True  # Use copulas for joint distributions
     enable_sensitivity_analysis: bool = True  # Run sensitivity analysis
+    enable_ethical_scenarios: bool = False  # Generate ethical impact scenarios
     
     # Dynamic calibration options
     calibrate_from_live_data: bool = False  # Use live data to calibrate parameters

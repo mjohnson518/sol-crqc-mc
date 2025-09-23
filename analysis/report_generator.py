@@ -141,6 +141,10 @@ class ReportGenerator:
         if self._has_advanced_stats_data(results):
             sections.append(self._generate_advanced_statistical_analysis(results))
         
+        # NEW: Ethical Impact Assessment (if enabled)
+        if self._has_ethical_scenarios(results):
+            sections.append(self._generate_ethical_assessment(results))
+        
         # Migration Strategy Recommendations
         if self.config.include_recommendations:
             sections.append(self._generate_migration_recommendations(results, risk_metrics))
@@ -943,6 +947,103 @@ class ReportGenerator:
             'sensitivity_analysis' in aggregated
         )
         return has_advanced
+    
+    def _has_ethical_scenarios(self, results: Dict[str, Any]) -> bool:
+        """Check if ethical scenario data is available."""
+        return 'ethical_scenarios' in results and results['ethical_scenarios']
+    
+    def _generate_ethical_assessment(self, results: Dict[str, Any]) -> str:
+        """Generate ethical impact assessment section."""
+        ethical = []
+        ethical.append("## 🌍 Ethical Impact Assessment")
+        ethical.append("")
+        ethical.append("This section analyzes the broader societal, privacy, and geopolitical implications "
+                      "of quantum threats to blockchain systems.")
+        ethical.append("")
+        
+        scenarios = results.get('ethical_scenarios', [])
+        
+        if not scenarios:
+            ethical.append("*No ethical scenarios were generated in this simulation.*")
+            return "\n".join(ethical)
+        
+        # Summary statistics
+        ethical.append("### Key Ethical Concerns")
+        ethical.append("")
+        
+        # Calculate aggregate impacts
+        total_affected = sum(s.get('individuals_affected', 0) for s in scenarios if isinstance(s, dict))
+        avg_trust_erosion = sum(s.get('trust_erosion', 0) for s in scenarios if isinstance(s, dict)) / max(len(scenarios), 1)
+        max_human_rights = max((s.get('human_rights_score', 0) for s in scenarios if isinstance(s, dict)), default=0)
+        
+        ethical.append(f"- **Individuals at Risk**: {total_affected:,}")
+        ethical.append(f"- **Average Trust Erosion**: {avg_trust_erosion:.1%}")
+        ethical.append(f"- **Maximum Human Rights Concern**: {max_human_rights}/10")
+        ethical.append("")
+        
+        # Most concerning scenarios
+        ethical.append("### Most Concerning Scenarios")
+        ethical.append("")
+        
+        # Sort scenarios by severity
+        sorted_scenarios = sorted(
+            [s for s in scenarios if isinstance(s, dict)],
+            key=lambda x: x.get('severity_score', 0),
+            reverse=True
+        )[:3]
+        
+        for i, scenario in enumerate(sorted_scenarios, 1):
+            ethical.append(f"#### {i}. {scenario.get('name', 'Unknown Scenario')}")
+            ethical.append("")
+            ethical.append(f"- **Actor Type**: {scenario.get('actor_type', 'Unknown')}")
+            ethical.append(f"- **Target Sector**: {scenario.get('target_sector', 'Unknown')}")
+            ethical.append(f"- **Privacy Impact**: {scenario.get('privacy_impact', 'Unknown')}")
+            ethical.append(f"- **Likelihood**: {scenario.get('likelihood', 0):.1%}")
+            ethical.append("")
+            
+            if 'description' in scenario:
+                ethical.append(f"*{scenario['description']}*")
+                ethical.append("")
+        
+        # Policy recommendations
+        ethical.append("### Policy Recommendations")
+        ethical.append("")
+        ethical.append("Based on ethical impact analysis:")
+        ethical.append("")
+        
+        recommendations = [
+            "1. **Accelerate Post-Quantum Migration**: Prioritize quantum-resistant cryptography deployment",
+            "2. **International Cooperation**: Establish quantum governance frameworks",
+            "3. **Privacy Protection**: Implement quantum-safe privacy legislation",
+            "4. **Vulnerable Populations**: Create protection programs for at-risk groups",
+            "5. **Democratic Safeguards**: Ensure quantum capabilities don't undermine democracy",
+            "6. **Human Rights Framework**: Develop quantum-era human rights protections"
+        ]
+        
+        for rec in recommendations:
+            ethical.append(rec)
+        ethical.append("")
+        
+        # Ethical dilemmas
+        ethical.append("### Key Ethical Dilemmas")
+        ethical.append("")
+        
+        dilemmas = set()
+        for scenario in scenarios:
+            if isinstance(scenario, dict) and 'ethical_dilemmas' in scenario:
+                dilemmas.update(scenario['ethical_dilemmas'])
+        
+        if dilemmas:
+            for dilemma in list(dilemmas)[:5]:
+                ethical.append(f"- {dilemma}")
+        else:
+            ethical.append("- Should nations develop quantum capabilities for deterrence?")
+            ethical.append("- How to balance security with privacy rights?")
+            ethical.append("- Can democracy survive in a post-quantum world?")
+        
+        ethical.append("")
+        
+        return "\n".join(ethical)
     
     def _generate_grover_analysis(self, results: Dict[str, Any]) -> str:
         """Generate Grover's algorithm analysis section."""
