@@ -19,6 +19,7 @@ from .quantum_research import QuantumResearchDatabase
 from .bayesian_crqc import HierarchicalBayesianCRQC
 from .competing_risks_crqc import CompetingRisksCRQC
 from .realtime_calibration import RealTimeCalibrator, DataPoint
+from src.analysis.uncertainty_quantification import UncertaintyAnalysis, UncertaintyReport
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class CRQCPrediction:
     confidence_score: float
     data_sources: List[str]
     anomaly_warnings: List[str]
+    uncertainty_report: Optional[UncertaintyReport] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for storage."""
@@ -50,7 +52,8 @@ class CRQCPrediction:
             'risk_factors': self.risk_factors,
             'confidence_score': self.confidence_score,
             'data_sources': self.data_sources,
-            'anomaly_warnings': self.anomaly_warnings
+            'anomaly_warnings': self.anomaly_warnings,
+            'uncertainty_report': self.uncertainty_report.to_dict() if self.uncertainty_report else None,
         }
 
 
@@ -84,6 +87,10 @@ class CRQCIntegratedModel:
             self.calibrator = RealTimeCalibrator()
         else:
             self.calibrator = None
+        
+        # Uncertainty analysis helper
+        self.uncertainty_analyzer = UncertaintyAnalysis()
+        self._latest_model_predictions: Dict[str, Dict[str, Any]] = {}
         
         # Model weights for ensemble
         self.model_weights = {
@@ -272,20 +279,29 @@ class CRQCIntegratedModel:
         # 1. Quantum Research baseline
         qr_prediction = self._get_quantum_research_prediction(current_year, horizon_years)
         predictions['quantum_research'] = qr_prediction
+        self._latest_model_predictions['quantum_research'] = qr_prediction
         
         # 2. Bayesian prediction
         bayesian_prediction = self._get_bayesian_prediction(current_year, horizon_years)
         predictions['bayesian'] = bayesian_prediction
+        self._latest_model_predictions['bayesian'] = bayesian_prediction
         
         # 3. Competing risks prediction
         cr_prediction = self._get_competing_risks_prediction(current_year, horizon_years)
         predictions['competing_risks'] = cr_prediction
+        self._latest_model_predictions['competing_risks'] = cr_prediction
         
         # Apply calibration adjustments
-        predictions = self._apply_calibration_adjustments(predictions)
+        adjustments = self._apply_calibration_adjustments(predictions)
         
         # Combine predictions using weighted ensemble
-        ensemble_prediction = self._ensemble_predictions(predictions, current_year, horizon_years)
+        ensemble_prediction = self._ensemble_predictions(adjustments, current_year, horizon_years)
+        
+        # Attach uncertainty quantification
+        ensemble_prediction.uncertainty_report = self.uncertainty_analyzer.analyze(
+            model_predictions=self._latest_model_predictions,
+            ensemble_prediction=ensemble_prediction,
+        )
         
         # Add warnings based on recent calibration
         if self.calibrator and self.calibrator.anomaly_buffer:
@@ -642,6 +658,20 @@ class CRQCIntegratedModel:
         report.append(f"Models: {', '.join(prediction.data_sources[:3])}")
         if len(prediction.data_sources) > 3:
             report.append(f"Real-time: {', '.join(prediction.data_sources[3:])}")
+        
+        if hasattr(prediction, "uncertainty_report"):
+            report.append("")
+            report.append("UNCERTAINTY QUANTIFICATION")
+            report.append("-" * 20)
+            for interval in prediction.uncertainty_report.intervals:
+                report.append(
+                    f"{int(interval.level*100)}% interval: {interval.lower:.0f} – {interval.upper:.0f}"
+                )
+            report.append("Component contributions:")
+            for comp in prediction.uncertainty_report.components:
+                report.append(
+                    f"• {comp.name.title()}: {comp.value:.2f} (contribution {comp.contribution:.0%})"
+                )
         
         if self.last_calibration:
             days_ago = (datetime.now() - self.last_calibration).days

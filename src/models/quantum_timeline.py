@@ -267,6 +267,10 @@ class QuantumDevelopmentModel:
         if self.integrated_crqc_model is not None:
             return self._sample_with_integrated_model(rng)
         
+        # Ensure previous uncertainty report is cleared when not using integrated model
+        self._integrated_prediction = None
+        self._integrated_prediction_year = None
+        
         # Use advanced models if enabled
         if self.use_advanced_models:
             # Choose between Cox and multimodal methods
