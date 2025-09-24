@@ -23,6 +23,9 @@ from .realtime_calibration import RealTimeCalibrator, DataPoint
 from .geopolitical_model import GeopoliticalModel
 from .breakthrough_detector import BreakthroughDetector
 from src.analysis.uncertainty_quantification import UncertaintyAnalysis, UncertaintyReport
+from src.analysis.ensemble_model import EnsembleCRQC
+from .extrapolation_model import ExponentialGrowthModel
+from .industry_roadmap_model import IndustryRoadmapModel
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +45,7 @@ class CRQCPrediction:
     data_sources: List[str]
     anomaly_warnings: List[str]
     uncertainty_report: Optional[UncertaintyReport] = None
+    ensemble_summary: Optional[Dict[str, Any]] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for storage."""
@@ -57,6 +61,7 @@ class CRQCPrediction:
             'data_sources': self.data_sources,
             'anomaly_warnings': self.anomaly_warnings,
             'uncertainty_report': self.uncertainty_report.to_dict() if self.uncertainty_report else None,
+            'ensemble_summary': self.ensemble_summary,
         }
 
 
@@ -86,6 +91,8 @@ class CRQCIntegratedModel:
         self.competing_risks = CompetingRisksCRQC()
         self.geopolitical_model = GeopoliticalModel()
         self.breakthrough_detector = BreakthroughDetector()
+        self.extrapolation_model = ExponentialGrowthModel()
+        self.industry_roadmap_model = IndustryRoadmapModel()
         
         # Initialize real-time calibrator if enabled
         if self.enable_realtime:
@@ -99,10 +106,13 @@ class CRQCIntegratedModel:
         
         # Model weights for ensemble
         self.model_weights = {
-            'bayesian': 0.35,
-            'competing_risks': 0.30,
-            'quantum_research': 0.20,
-            'geopolitical': 0.15,
+            'bayesian': 0.30,
+            'competing_risks': 0.25,
+            'quantum_research': 0.10,
+            'geopolitical': 0.10,
+            'breakthrough_detection': 0.10,
+            'extrapolation': 0.10,
+            'industry_roadmap': 0.05,
         }
         
         # Calibration state
@@ -111,6 +121,7 @@ class CRQCIntegratedModel:
         
         # Load cached state if available
         self._load_state()
+        self.ensemble = EnsembleCRQC(weights=self.model_weights)
     
     def _load_state(self):
         """Load cached model state."""
@@ -309,11 +320,27 @@ class CRQCIntegratedModel:
         predictions['breakthrough_detection'] = self._get_breakthrough_prediction(current_year, horizon_years)
         self._latest_model_predictions['breakthrough_detection'] = predictions['breakthrough_detection']
         
+        # Extrapolation model prediction
+        predictions['extrapolation'] = self._get_extrapolation_prediction()
+        self._latest_model_predictions['extrapolation'] = predictions['extrapolation']
+
+        # Industry roadmap prediction
+        predictions['industry_roadmap'] = self._get_industry_prediction()
+        self._latest_model_predictions['industry_roadmap'] = predictions['industry_roadmap']
+        
         # Apply calibration adjustments
         adjustments = self._apply_calibration_adjustments(predictions)
         
         # Combine predictions using weighted ensemble
         ensemble_prediction = self._ensemble_predictions(adjustments, current_year, horizon_years)
+        ensemble_summary = self.ensemble.combine_predictions({
+            name: {
+                "median": pred['median_year'],
+                "ci_95": self._extract_ci(pred)
+            }
+            for name, pred in adjustments.items()
+        })
+        ensemble_prediction.ensemble_summary = ensemble_summary
         
         # Attach uncertainty quantification
         ensemble_prediction.uncertainty_report = self.uncertainty_analyzer.analyze(
@@ -577,7 +604,7 @@ class CRQCIntegratedModel:
         if geopolitical_metrics:
             risk_factors['geopolitical_investment_growth'] = geopolitical_metrics['investment_growth']
             risk_factors['geopolitical_timeline_shift'] = geopolitical_metrics['timeline_adjustment']
-
+        
         # Calculate confidence score
         confidence_score = self._calculate_confidence_score(predictions)
         
@@ -586,7 +613,7 @@ class CRQCIntegratedModel:
         if self.calibrator:
             data_sources.extend(['arxiv', 'quantum_news', 'github'])
         
-        return CRQCPrediction(
+        prediction = CRQCPrediction(
             timestamp=datetime.now(),
             median_year=ensemble_median,
             confidence_interval_90=ci_90,
@@ -598,6 +625,7 @@ class CRQCIntegratedModel:
             data_sources=data_sources,
             anomaly_warnings=[]
         )
+        return prediction
     
     def _calculate_confidence_intervals(self,
                                       values: List[float],
@@ -765,7 +793,82 @@ class CRQCIntegratedModel:
             days_ago = (datetime.now() - self.last_calibration).days
             report.append(f"Last calibration: {days_ago} days ago")
         
+        if hasattr(prediction, "ensemble_summary") and prediction.ensemble_summary:
+            report.append("")
+            report.append("ENSEMBLE SUMMARY")
+            report.append("-" * 20)
+            report.append(
+                f"Weighted median: {prediction.ensemble_summary['median']:.0f}"
+            )
+            ci_low, ci_high = prediction.ensemble_summary['ci_95']
+            report.append(f"Ensemble 95% CI: {ci_low:.0f} – {ci_high:.0f}")
+        
         return "\n".join(report)
+
+    def _extract_ci(self, prediction: Dict[str, Any]) -> tuple[float, float]:
+        prob_by_year = prediction.get('probability_by_year', {})
+        years = sorted(prob_by_year)
+        if not years:
+            return (prediction.get('median_year', 0.0) - 5, prediction.get('median_year', 0.0) + 5)
+        cumulative_probs = [prob_by_year[year] for year in years]
+        lower, upper = self._quantiles_from_cdf(years, cumulative_probs, 0.025, 0.975)
+        return (lower, upper)
+
+    def _quantiles_from_cdf(self, years: List[int], probs: List[float], q_low: float, q_high: float) -> tuple[float, float]:
+        cumulative = np.clip(probs, 0.0, 1.0)
+        cumulative[-1] = 1.0
+        cumulative[0] = max(cumulative[0], 0.0)
+        lower = self._interpolate_quantile(years, cumulative, q_low)
+        upper = self._interpolate_quantile(years, cumulative, q_high)
+        return (lower, upper)
+
+    def _interpolate_quantile(self, years: List[int], probs: List[float], q: float) -> float:
+        if q <= probs[0]:
+            return float(years[0])
+        for idx in range(1, len(probs)):
+            if probs[idx] >= q:
+                prev_year, prev_prob = years[idx - 1], probs[idx - 1]
+                year, prob = years[idx], probs[idx]
+                if prob == prev_prob:
+                    return float(year)
+                fraction = (q - prev_prob) / (prob - prev_prob)
+                return float(prev_year + fraction * (year - prev_year))
+        return float(years[-1])
+
+    def _get_extrapolation_prediction(self) -> Dict[str, Any]:
+        result = self.extrapolation_model.predict()
+        median = result['median']
+        ci_low, ci_high = result['ci_95']
+        prob_by_year = {}
+        current_year = int(np.floor(median)) - 15
+        for year in range(current_year, current_year + 40):
+            z = (year - median) / max((ci_high - ci_low) / 6, 1.0)
+            prob_by_year[year] = 1 / (1 + math.exp(-z))
+        return {
+            'median_year': median,
+            'probability_by_year': prob_by_year,
+            'dominant_pathway': 'extrapolation_growth',
+            'ci_95': (ci_low, ci_high),
+        }
+
+    def _get_industry_prediction(self) -> Dict[str, Any]:
+        result = self.industry_roadmap_model.predict()
+        median = result['median']
+        ci_low, ci_high = result['ci_95']
+        prob_by_year = {}
+        current_year = int(np.floor(ci_low))
+        for year in range(current_year, current_year + 30):
+            if year <= median:
+                prob = max(0.0, (year - ci_low) / max(median - ci_low, 1)) * 0.5
+            else:
+                prob = 0.5 + max(0.0, (year - median) / max(ci_high - median, 1)) * 0.5
+            prob_by_year[year] = min(1.0, prob)
+        return {
+            'median_year': median,
+            'probability_by_year': prob_by_year,
+            'dominant_pathway': 'industry_consensus',
+            'ci_95': (ci_low, ci_high),
+        }
 
 
 def test_integrated_model():
