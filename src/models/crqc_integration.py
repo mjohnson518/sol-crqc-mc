@@ -19,6 +19,7 @@ from .quantum_research import QuantumResearchDatabase
 from .bayesian_crqc import HierarchicalBayesianCRQC
 from .competing_risks_crqc import CompetingRisksCRQC
 from .realtime_calibration import RealTimeCalibrator, DataPoint
+from .geopolitical_model import GeopoliticalModel
 from src.analysis.uncertainty_quantification import UncertaintyAnalysis, UncertaintyReport
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,7 @@ class CRQCIntegratedModel:
         self.quantum_research = QuantumResearchDatabase()
         self.bayesian_model = HierarchicalBayesianCRQC()
         self.competing_risks = CompetingRisksCRQC()
+        self.geopolitical_model = GeopoliticalModel()
         
         # Initialize real-time calibrator if enabled
         if self.enable_realtime:
@@ -94,9 +96,10 @@ class CRQCIntegratedModel:
         
         # Model weights for ensemble
         self.model_weights = {
-            'bayesian': 0.4,
-            'competing_risks': 0.35,
-            'quantum_research': 0.25
+            'bayesian': 0.35,
+            'competing_risks': 0.30,
+            'quantum_research': 0.20,
+            'geopolitical': 0.15,
         }
         
         # Calibration state
@@ -291,6 +294,11 @@ class CRQCIntegratedModel:
         predictions['competing_risks'] = cr_prediction
         self._latest_model_predictions['competing_risks'] = cr_prediction
         
+        # 4. Geopolitical prediction
+        geopolitical_prediction = self._get_geopolitical_prediction(current_year, horizon_years)
+        predictions['geopolitical'] = geopolitical_prediction
+        self._latest_model_predictions['geopolitical'] = geopolitical_prediction
+        
         # Apply calibration adjustments
         adjustments = self._apply_calibration_adjustments(predictions)
         
@@ -425,6 +433,27 @@ class CRQCIntegratedModel:
             'pathway_probabilities': final_incidences
         }
     
+    def _get_geopolitical_prediction(self,
+                                     current_year: int,
+                                     horizon_years: int) -> Dict[str, Any]:
+        metrics = self.geopolitical_model.compute_geopolitical_adjustment(years=horizon_years)
+        median_adjustment = metrics['timeline_adjustment']
+        base_median = current_year + horizon_years / 2
+        median_year = base_median + median_adjustment
+
+        prob_by_year = {}
+        for year in range(current_year, current_year + horizon_years):
+            delta = year - median_year
+            prob = 1 / (1 + np.exp(-delta / 2))
+            prob_by_year[year] = prob
+
+        return {
+            'median_year': median_year,
+            'probability_by_year': prob_by_year,
+            'dominant_pathway': 'geopolitical_acceleration',
+            'metrics': metrics,
+        }
+    
     def _apply_calibration_adjustments(self, 
                                      predictions: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         """Apply real-time calibration adjustments to predictions."""
@@ -500,7 +529,11 @@ class CRQCIntegratedModel:
         
         # Calculate risk factors
         risk_factors = self._calculate_risk_factors(predictions)
-        
+        geopolitical_metrics = self.geopolitical_model.get_cached_metrics()
+        if geopolitical_metrics:
+            risk_factors['geopolitical_investment_growth'] = geopolitical_metrics['investment_growth']
+            risk_factors['geopolitical_timeline_shift'] = geopolitical_metrics['timeline_adjustment']
+
         # Calculate confidence score
         confidence_score = self._calculate_confidence_score(predictions)
         
