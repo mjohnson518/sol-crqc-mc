@@ -3,18 +3,35 @@ Attack scenarios model for quantum threats against Solana.
 
 This module models different quantum attack scenarios, their success
 probabilities, and potential impacts on the Solana network.
+
+Enhanced features (controlled by config flags):
+- Hybrid attacks combining Shor's, Grover's, and classical methods
+- Agent-based modeling for adversarial strategies
+- Grover's algorithm risks for Solana's PoH
+- Exponential time distributions for attack execution
 """
 
 import numpy as np
 from scipy import stats
+from scipy.stats import expon
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 import logging
 from enum import Enum
 import math
 
+# Import mesa for agent-based modeling if available
+try:
+    from mesa import Agent, Model
+    from mesa.time import RandomActivation
+    from mesa.datacollection import DataCollector
+    MESA_AVAILABLE = True
+except ImportError:
+    MESA_AVAILABLE = False
+    logging.info("Mesa not available - agent-based modeling will use fallback implementation")
+
 from src.config import QuantumParameters
-from src.models.quantum_timeline import QuantumCapability, QuantumThreat
+from src.models.quantum_timeline import QuantumCapability, QuantumThreat, GroverCapability
 from src.models.network_state import NetworkSnapshot, ValidatorState, ValidatorTier
 
 logger = logging.getLogger(__name__)
@@ -28,6 +45,12 @@ class AttackType(Enum):
     CONSENSUS_CONTROL = "consensus_control"  # Control consensus with 67%+
     TARGETED_THEFT = "targeted_theft"      # Target specific high-value accounts
     SYSTEMIC_FAILURE = "systemic_failure"  # Cascade failure from multiple attacks
+    # New enhanced attack types
+    GROVER_POH = "grover_poh"             # Grover attack on Proof of History
+    GROVER_HASH = "grover_hash"           # Grover attack on SHA-256 hashes
+    HYBRID_SHOR_GROVER = "hybrid_shor_grover"  # Combined Shor's + Grover's
+    HYBRID_QUANTUM_CLASSICAL = "hybrid_quantum_classical"  # Quantum + classical
+    POH_FORGERY = "poh_forgery"           # Forge PoH timestamps
 
 
 class AttackVector(Enum):
@@ -56,6 +79,47 @@ class AttackerProfile(Enum):
 
 
 @dataclass
+class HybridAttack:
+    """Represents a hybrid quantum-classical attack."""
+    
+    quantum_component: str  # Shor, Grover, or both
+    classical_component: str  # Brute-force, side-channel, social engineering
+    synergy_factor: float  # How well components work together (1-3)
+    time_reduction_factor: float  # Speed improvement from hybrid approach
+    qubit_reduction_factor: float  # Reduced qubit requirements
+    success_prob_quantum: float
+    success_prob_classical: float
+    success_prob_combined: float
+    
+    @property
+    def effective_success_rate(self) -> float:
+        """Calculate effective success rate from combined approach."""
+        # P(success) = P(quantum) + P(classical) - P(quantum) * P(classical) + synergy bonus
+        independent = self.success_prob_quantum + self.success_prob_classical - \
+                     (self.success_prob_quantum * self.success_prob_classical)
+        return min(0.99, independent * self.synergy_factor)
+
+
+@dataclass
+class GroverAttack:
+    """Represents a Grover's algorithm attack on hashing."""
+    
+    target: str  # SHA-256, PoH, Merkle tree, etc.
+    operations_required: float  # 2^n operations
+    speedup_achieved: float  # Square root speedup
+    qubits_required: int
+    gate_count: float
+    attack_time_hours: float
+    poh_vulnerability: bool  # Can forge PoH
+    can_rewrite_history: bool  # Can modify past blocks
+    
+    @property
+    def effective_security_reduction(self) -> int:
+        """Calculate effective security bit reduction."""
+        return int(np.log2(self.speedup_achieved))
+
+
+@dataclass
 class AttackScenario:
     """Represents a specific attack scenario."""
     
@@ -73,6 +137,11 @@ class AttackScenario:
     attacker_profile: AttackerProfile = AttackerProfile.PROFIT_DRIVEN
     attribution_difficulty: float = 0.5  # 0-1, how hard to attribute
     strategic_value: float = 1.0  # Multiplier for nation-state attacks
+    # New fields for enhanced attacks
+    hybrid_attack: Optional[HybridAttack] = None
+    grover_attack: Optional[GroverAttack] = None
+    attack_time_distribution: Optional[str] = "exponential"  # Distribution type
+    parallelization_factor: float = 1.0  # For multiple quantum processors
     
     @property
     def impact_score(self) -> float:
@@ -92,7 +161,13 @@ class AttackScenario:
         # Adjust for detection probability (harder to detect = higher impact)
         detection_factor = 1.0 - (self.detection_probability * 0.3)
         
-        return base_score * (1 + stake_factor) * detection_factor / 2
+        # Bonus for hybrid attacks
+        hybrid_bonus = 1.2 if self.hybrid_attack else 1.0
+        
+        # Bonus for Grover attacks on PoH
+        grover_bonus = 1.3 if (self.grover_attack and self.grover_attack.poh_vulnerability) else 1.0
+        
+        return base_score * (1 + stake_factor) * detection_factor * hybrid_bonus * grover_bonus / 2
 
 
 @dataclass
@@ -143,6 +218,104 @@ class AttackPlan:
         return None
 
 
+# Agent-based modeling components (if Mesa available)
+if MESA_AVAILABLE:
+    class AdversaryAgent(Agent):
+        """Adversary agent for agent-based attack modeling."""
+        
+        def __init__(self, unique_id, model, profile: AttackerProfile):
+            super().__init__(unique_id, model)
+            self.profile = profile
+            self.resources = 1.0  # Normalized resources
+            self.knowledge = 0.5  # Knowledge of vulnerabilities
+            self.success_count = 0
+            self.failed_count = 0
+            
+            # Profile-specific attributes
+            if profile == AttackerProfile.NATION_STATE:
+                self.resources = 10.0
+                self.knowledge = 0.9
+            elif profile == AttackerProfile.PROFIT_DRIVEN:
+                self.resources = 2.0
+                self.knowledge = 0.7
+            elif profile == AttackerProfile.CHAOS_AGENT:
+                self.resources = 0.5
+                self.knowledge = 0.6
+        
+        def step(self):
+            """Execute one step of the attack simulation."""
+            # Decide on attack strategy
+            if self.profile == AttackerProfile.NATION_STATE:
+                # Strategic, patient approach
+                self.execute_strategic_attack()
+            elif self.profile == AttackerProfile.PROFIT_DRIVEN:
+                # Opportunistic approach
+                self.execute_opportunistic_attack()
+            else:
+                # Chaotic approach
+                self.execute_chaotic_attack()
+        
+        def execute_strategic_attack(self):
+            """Nation-state strategic attack."""
+            # Patient, high-resource attack
+            if self.model.quantum_capability and self.model.quantum_capability.logical_qubits > 2000:
+                self.success_count += 1
+                self.model.attack_success = True
+        
+        def execute_opportunistic_attack(self):
+            """Criminal opportunistic attack."""
+            # Quick profit-driven attack
+            if self.model.vulnerable_stake > 0.1:
+                if self.model.random.random() < 0.7:
+                    self.success_count += 1
+        
+        def execute_chaotic_attack(self):
+            """Chaos agent random attack."""
+            # Random disruptive attack
+            if self.model.random.random() < 0.3:
+                self.success_count += 1
+    
+    class AttackSimulationModel(Model):
+        """Agent-based model for attack simulation."""
+        
+        def __init__(self, n_adversaries: int = 10, quantum_capability=None, network_state=None):
+            super().__init__()
+            self.num_agents = n_adversaries
+            self.schedule = RandomActivation(self)
+            self.quantum_capability = quantum_capability
+            self.network_state = network_state
+            self.vulnerable_stake = network_state.vulnerable_stake_percentage if network_state else 0.5
+            self.attack_success = False
+            
+            # Create adversary agents
+            profiles = [AttackerProfile.NATION_STATE] * 2 + \
+                      [AttackerProfile.PROFIT_DRIVEN] * 6 + \
+                      [AttackerProfile.CHAOS_AGENT] * 2
+            
+            for i in range(self.num_agents):
+                profile = profiles[i % len(profiles)]
+                agent = AdversaryAgent(i, self, profile)
+                self.schedule.add(agent)
+            
+            # Data collection
+            self.datacollector = DataCollector(
+                model_reporters={
+                    "AttackSuccess": lambda m: m.attack_success,
+                    "TotalAttempts": lambda m: sum([a.success_count + a.failed_count 
+                                                   for a in m.schedule.agents])
+                },
+                agent_reporters={
+                    "Success": "success_count",
+                    "Resources": "resources"
+                }
+            )
+        
+        def step(self):
+            """Advance the model by one step."""
+            self.datacollector.collect(self)
+            self.schedule.step()
+
+
 class AttackScenariosModel:
     """
     Models quantum attack scenarios against Solana.
@@ -155,14 +328,23 @@ class AttackScenariosModel:
     - Detection and mitigation factors
     """
     
-    def __init__(self, params: Optional[QuantumParameters] = None):
+    def __init__(self, params: Optional[QuantumParameters] = None,
+                 enable_grover: bool = False,
+                 enable_hybrid_attacks: bool = False,
+                 use_agent_based_model: bool = False):
         """
         Initialize attack scenarios model.
         
         Args:
             params: Quantum parameters configuration
+            enable_grover: Whether to model Grover's algorithm attacks
+            enable_hybrid_attacks: Whether to model hybrid quantum-classical attacks
+            use_agent_based_model: Whether to use agent-based modeling
         """
         self.params = params or QuantumParameters()
+        self.enable_grover = enable_grover
+        self.enable_hybrid_attacks = enable_hybrid_attacks
+        self.use_agent_based_model = use_agent_based_model and MESA_AVAILABLE
         
         # Attack requirements (logical qubits needed)
         self.attack_requirements = {
@@ -171,7 +353,14 @@ class AttackScenariosModel:
             AttackType.CONSENSUS_HALT: self.params.logical_qubits_for_ed25519 * 33,  # 33% stake
             AttackType.CONSENSUS_CONTROL: self.params.logical_qubits_for_ed25519 * 67,  # 67% stake
             AttackType.TARGETED_THEFT: self.params.logical_qubits_for_ed25519,
-            AttackType.SYSTEMIC_FAILURE: self.params.logical_qubits_for_ed25519 * 100
+            AttackType.SYSTEMIC_FAILURE: self.params.logical_qubits_for_ed25519 * 100,
+            # New Grover attack requirements
+            AttackType.GROVER_POH: self.params.grover_qubits_sha256,
+            AttackType.GROVER_HASH: self.params.grover_qubits_sha256,
+            AttackType.HYBRID_SHOR_GROVER: min(self.params.logical_qubits_for_ed25519,
+                                              self.params.grover_qubits_sha256) // 2,
+            AttackType.HYBRID_QUANTUM_CLASSICAL: self.params.logical_qubits_for_ed25519 // 2,
+            AttackType.POH_FORGERY: self.params.grover_qubits_sha256
         }
         
         # Base success rates when requirements are met
@@ -181,7 +370,13 @@ class AttackScenariosModel:
             AttackType.CONSENSUS_HALT: 0.60,
             AttackType.CONSENSUS_CONTROL: 0.40,
             AttackType.TARGETED_THEFT: 0.85,
-            AttackType.SYSTEMIC_FAILURE: 0.30
+            AttackType.SYSTEMIC_FAILURE: 0.30,
+            # New attack success rates
+            AttackType.GROVER_POH: 0.80,
+            AttackType.GROVER_HASH: 0.75,
+            AttackType.HYBRID_SHOR_GROVER: 0.90,
+            AttackType.HYBRID_QUANTUM_CLASSICAL: 0.85,
+            AttackType.POH_FORGERY: 0.70
         }
         
         # Detection probabilities
@@ -191,14 +386,24 @@ class AttackScenariosModel:
             AttackType.CONSENSUS_HALT: 0.95,     # Network halt is immediately visible
             AttackType.CONSENSUS_CONTROL: 0.9,   # Consensus takeover is visible
             AttackType.TARGETED_THEFT: 0.5,      # Depends on monitoring
-            AttackType.SYSTEMIC_FAILURE: 1.0     # Systemic failure is obvious
+            AttackType.SYSTEMIC_FAILURE: 1.0,    # Systemic failure is obvious
+            # New attack detection rates
+            AttackType.GROVER_POH: 0.4,          # PoH attacks harder to detect
+            AttackType.GROVER_HASH: 0.6,         # Hash collisions detectable
+            AttackType.HYBRID_SHOR_GROVER: 0.35, # Hybrid attacks harder to detect
+            AttackType.HYBRID_QUANTUM_CLASSICAL: 0.4,
+            AttackType.POH_FORGERY: 0.7          # Forged timestamps eventually detected
         }
+        
+        # Agent-based model instance
+        self.agent_model = None
     
     def sample(
         self,
         rng: np.random.RandomState,
         quantum_capability: QuantumCapability,
-        network_snapshot: NetworkSnapshot
+        network_snapshot: NetworkSnapshot,
+        grover_capability: Optional[GroverCapability] = None
     ) -> AttackPlan:
         """
         Sample an attack plan based on quantum capabilities and network state.
@@ -214,7 +419,8 @@ class AttackScenariosModel:
         # Identify feasible attack types
         feasible_attacks = self._identify_feasible_attacks(
             quantum_capability,
-            network_snapshot
+            network_snapshot,
+            grover_capability
         )
         
         if not feasible_attacks:
@@ -236,7 +442,8 @@ class AttackScenariosModel:
                 rng,
                 attack_type,
                 quantum_capability,
-                network_snapshot
+                network_snapshot,
+                grover_capability
             )
             scenarios.append(scenario)
         
@@ -284,7 +491,8 @@ class AttackScenariosModel:
     def _identify_feasible_attacks(
         self,
         capability: QuantumCapability,
-        network: NetworkSnapshot
+        network: NetworkSnapshot,
+        grover_capability: Optional[GroverCapability] = None
     ) -> List[AttackType]:
         """Identify which attacks are feasible with current capabilities."""
         feasible = []
@@ -305,6 +513,22 @@ class AttackScenariosModel:
                 if network.vulnerable_stake_percentage < 0.67:
                     continue
             
+            # Check Grover-specific attacks
+            elif attack_type in [AttackType.GROVER_POH, AttackType.GROVER_HASH, AttackType.POH_FORGERY]:
+                if not self.enable_grover or not grover_capability:
+                    continue
+                if not grover_capability.can_attack_sha256:
+                    continue
+            
+            # Check hybrid attacks
+            elif attack_type in [AttackType.HYBRID_SHOR_GROVER, AttackType.HYBRID_QUANTUM_CLASSICAL]:
+                if not self.enable_hybrid_attacks:
+                    continue
+                # For Shor+Grover hybrid, need both capabilities
+                if attack_type == AttackType.HYBRID_SHOR_GROVER:
+                    if not grover_capability or not grover_capability.can_attack_sha256:
+                        continue
+            
             feasible.append(attack_type)
         
         return feasible
@@ -314,7 +538,8 @@ class AttackScenariosModel:
         rng: np.random.RandomState,
         attack_type: AttackType,
         capability: QuantumCapability,
-        network: NetworkSnapshot
+        network: NetworkSnapshot,
+        grover_capability: Optional[GroverCapability] = None
     ) -> AttackScenario:
         """Generate a specific attack scenario."""
         
@@ -378,11 +603,40 @@ class AttackScenariosModel:
             network
         )
         
+        # Generate Grover attack if applicable
+        grover_attack = None
+        if self.enable_grover and attack_type in [AttackType.GROVER_POH, AttackType.GROVER_HASH,
+                                                   AttackType.POH_FORGERY]:
+            if grover_capability:
+                grover_attack = self._generate_grover_attack(rng, grover_capability, network)
+        
+        # Generate hybrid attack if applicable
+        hybrid_attack = None
+        if self.enable_hybrid_attacks and attack_type in [AttackType.HYBRID_SHOR_GROVER,
+                                                          AttackType.HYBRID_QUANTUM_CLASSICAL]:
+            hybrid_attack = self._generate_hybrid_attack(
+                rng, attack_type, capability, grover_capability, network
+            )
+        
         # Calculate execution time (hours)
-        execution_time = self._calculate_execution_time(
+        # Determine parallelization factor
+        parallelization = 1.0
+        if attacker_profile == AttackerProfile.NATION_STATE:
+            parallelization = rng.uniform(2, 5)  # Multiple quantum processors
+        elif hybrid_attack:
+            parallelization = hybrid_attack.time_reduction_factor
+        
+        base_execution_time = self._calculate_execution_time(
             attack_type,
             capability,
             validators_compromised
+        )
+        
+        # Use exponential distribution for time modeling
+        execution_time = self._calculate_exponential_attack_time(
+            base_execution_time,
+            rng,
+            parallelization
         )
         
         # Detection probability
@@ -420,7 +674,11 @@ class AttackScenariosModel:
             mitigation_possible=mitigation,
             attacker_profile=attacker_profile,
             attribution_difficulty=attribution_difficulty,
-            strategic_value=strategic_value
+            strategic_value=strategic_value,
+            hybrid_attack=hybrid_attack,
+            grover_attack=grover_attack,
+            attack_time_distribution="exponential",
+            parallelization_factor=parallelization
         )
     
     def _calculate_success_probability(
@@ -681,14 +939,17 @@ class AttackScenariosModel:
         if attack_type in [
             AttackType.KEY_COMPROMISE,
             AttackType.CONSENSUS_HALT,
-            AttackType.CONSENSUS_CONTROL
+            AttackType.CONSENSUS_CONTROL,
+            AttackType.HYBRID_QUANTUM_CLASSICAL
         ]:
             return AttackVector.VALIDATOR_KEYS
         
         elif attack_type == AttackType.TARGETED_THEFT:
             return AttackVector.USER_ACCOUNTS
         
-        elif attack_type == AttackType.DOUBLE_SPEND:
+        elif attack_type in [AttackType.DOUBLE_SPEND, AttackType.GROVER_POH, 
+                            AttackType.GROVER_HASH, AttackType.POH_FORGERY,
+                            AttackType.HYBRID_SHOR_GROVER]:
             return AttackVector.NETWORK_PROTOCOL
         
         else:
@@ -781,6 +1042,198 @@ class AttackScenariosModel:
             contingency.append(degraded)
         
         return contingency
+    
+    def _generate_grover_attack(
+        self,
+        rng: np.random.RandomState,
+        grover_capability: GroverCapability,
+        network: NetworkSnapshot
+    ) -> Optional[GroverAttack]:
+        """Generate Grover's algorithm attack scenario."""
+        if not grover_capability or not grover_capability.can_attack_sha256:
+            return None
+        
+        # Determine target
+        targets = ["SHA-256", "PoH", "Merkle tree", "Block hash"]
+        target = rng.choice(targets, p=[0.3, 0.4, 0.2, 0.1])
+        
+        # Calculate attack parameters
+        operations = 2 ** 128  # SHA-256 with Grover speedup
+        speedup = grover_capability.speedup_factor
+        
+        # Attack time with exponential distribution
+        base_time = grover_capability.attack_time_hours
+        actual_time = expon.rvs(scale=base_time, random_state=rng)
+        
+        # PoH specific vulnerability
+        poh_vulnerable = (target == "PoH" and grover_capability.poh_vulnerability)
+        
+        # Can rewrite history if attacking block hashes with enough speed
+        can_rewrite = (target in ["Block hash", "PoH"] and actual_time < 1.0)
+        
+        return GroverAttack(
+            target=target,
+            operations_required=operations,
+            speedup_achieved=speedup,
+            qubits_required=grover_capability.logical_qubits,
+            gate_count=operations / speedup,
+            attack_time_hours=actual_time,
+            poh_vulnerability=poh_vulnerable,
+            can_rewrite_history=can_rewrite
+        )
+    
+    def _generate_hybrid_attack(
+        self,
+        rng: np.random.RandomState,
+        attack_type: AttackType,
+        quantum_capability: QuantumCapability,
+        grover_capability: Optional[GroverCapability],
+        network: NetworkSnapshot
+    ) -> Optional[HybridAttack]:
+        """Generate hybrid quantum-classical attack."""
+        if not self.enable_hybrid_attacks:
+            return None
+        
+        # Determine components based on attack type
+        if attack_type == AttackType.HYBRID_SHOR_GROVER:
+            if not grover_capability or not grover_capability.can_attack_sha256:
+                return None
+            
+            quantum_component = "Shor + Grover"
+            classical_component = "Brute-force residual"
+            
+            # Success probabilities
+            shor_success = 0.9 if quantum_capability.can_break_ed25519 else 0.1
+            grover_success = 0.8 if grover_capability.can_attack_sha256 else 0.1
+            classical_success = 0.3
+            
+            # Synergy from combined approach
+            synergy = 1.5  # 50% improvement from combination
+            
+            # Time reduction from parallelization
+            time_reduction = 0.4  # 60% faster
+            
+            # Qubit reduction from hybrid approach
+            qubit_reduction = 0.7  # 30% fewer qubits needed
+            
+        elif attack_type == AttackType.HYBRID_QUANTUM_CLASSICAL:
+            quantum_component = "Shor's algorithm"
+            classical_component = "Side-channel attack"
+            
+            shor_success = 0.8 if quantum_capability.can_break_ed25519 else 0.2
+            classical_success = 0.4  # Side-channel attacks moderately successful
+            grover_success = 0  # Not using Grover
+            
+            synergy = 1.3  # 30% improvement
+            time_reduction = 0.5  # 50% faster
+            qubit_reduction = 0.8  # 20% fewer qubits
+            
+        else:
+            return None
+        
+        # Calculate combined success probability
+        quantum_success = max(shor_success, grover_success)
+        combined_success = quantum_success + classical_success - \
+                         (quantum_success * classical_success)
+        combined_success *= synergy
+        combined_success = min(0.99, combined_success)
+        
+        return HybridAttack(
+            quantum_component=quantum_component,
+            classical_component=classical_component,
+            synergy_factor=synergy,
+            time_reduction_factor=time_reduction,
+            qubit_reduction_factor=qubit_reduction,
+            success_prob_quantum=quantum_success,
+            success_prob_classical=classical_success,
+            success_prob_combined=combined_success
+        )
+    
+    def _calculate_exponential_attack_time(
+        self,
+        base_time: float,
+        rng: np.random.RandomState,
+        parallelization: float = 1.0
+    ) -> float:
+        """
+        Calculate attack execution time using exponential distribution.
+        
+        Args:
+            base_time: Mean time for attack
+            rng: Random number generator
+            parallelization: Parallelization factor (>1 means multiple processors)
+            
+        Returns:
+            Attack time in hours
+        """
+        # Sample from exponential distribution
+        scale = base_time / parallelization
+        time_components = []
+        
+        # Model as sum of exponential random variables (phases of attack)
+        n_phases = 3  # Key extraction, computation, verification
+        for _ in range(n_phases):
+            phase_time = expon.rvs(scale=scale/n_phases, random_state=rng)
+            time_components.append(phase_time)
+        
+        total_time = sum(time_components)
+        
+        # Apply minimum time constraint
+        return max(0.1, total_time)
+    
+    def simulate_with_agents(
+        self,
+        quantum_capability: QuantumCapability,
+        network_state: NetworkSnapshot,
+        n_steps: int = 10
+    ) -> Dict[str, Any]:
+        """
+        Run agent-based attack simulation.
+        
+        Args:
+            quantum_capability: Quantum computing capability
+            network_state: Network state
+            n_steps: Number of simulation steps
+            
+        Returns:
+            Dictionary with simulation results
+        """
+        if not self.use_agent_based_model or not MESA_AVAILABLE:
+            return {"error": "Agent-based modeling not available"}
+        
+        # Create agent model
+        self.agent_model = AttackSimulationModel(
+            n_adversaries=10,
+            quantum_capability=quantum_capability,
+            network_state=network_state
+        )
+        
+        # Run simulation
+        for _ in range(n_steps):
+            self.agent_model.step()
+        
+        # Collect results
+        model_data = self.agent_model.datacollector.get_model_vars_dataframe()
+        agent_data = self.agent_model.datacollector.get_agent_vars_dataframe()
+        
+        # Analyze results
+        success_rate = model_data["AttackSuccess"].mean() if len(model_data) > 0 else 0
+        total_attempts = model_data["TotalAttempts"].iloc[-1] if len(model_data) > 0 else 0
+        
+        # Get agent profiles success rates
+        agent_success = {}
+        if len(agent_data) > 0:
+            for agent_id in agent_data.index.get_level_values(1).unique():
+                agent_success[f"agent_{agent_id}"] = \
+                    agent_data.xs(agent_id, level=1)["Success"].iloc[-1]
+        
+        return {
+            "success_rate": success_rate,
+            "total_attempts": total_attempts,
+            "agent_success": agent_success,
+            "model_data": model_data,
+            "agent_data": agent_data
+        }
 
 
 def test_attack_model():

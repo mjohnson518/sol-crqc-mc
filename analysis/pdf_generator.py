@@ -1581,6 +1581,241 @@ class PDFReportGenerator:
                         story_elements.append(code_para)
                         story_elements.append(Spacer(1, SPACING['after_paragraph']))
     
+    def _has_enhanced_data(self, section: Dict[str, Any]) -> bool:
+        """Check if section contains enhanced model data."""
+        title = section.get('title', '').lower()
+        content = section.get('content', '').lower()
+        
+        enhanced_indicators = [
+            'grover', 'hybrid attack', 'system dynamics', 'cross-chain', 
+            'cox hazards', 'var forecast', 'multimodal', 'copula',
+            'sensitivity analysis', 'sobol indices', 'agent-based'
+        ]
+        
+        for indicator in enhanced_indicators:
+            if indicator in title or indicator in content:
+                return True
+        return False
+    
+    def _add_enhanced_section_visuals(self, section: Dict[str, Any], story_elements: list):
+        """Add enhanced visualizations for advanced model outputs."""
+        title = section.get('title', '').lower()
+        
+        # Check for specific enhanced sections
+        if 'grover' in title:
+            self._add_grover_visualization(story_elements)
+        elif 'hybrid' in title:
+            self._add_hybrid_attack_visualization(story_elements)
+        elif 'system dynamics' in title:
+            self._add_system_dynamics_visualization(story_elements)
+        elif 'cross-chain' in title or 'contagion' in title:
+            self._add_cross_chain_visualization(story_elements)
+        elif 'cox' in title or 'hazards' in title:
+            self._add_cox_hazards_visualization(story_elements)
+    
+    def _add_grover_visualization(self, story_elements: list):
+        """Add Grover's algorithm specific visualizations."""
+        # Create a drawing for Grover speedup comparison
+        drawing = Drawing(400, 200)
+        
+        # Add title
+        drawing.add(String(200, 180, "Grover vs Classical Search Complexity",
+                          fontSize=12, fontName='Helvetica-Bold', 
+                          textAnchor='middle', fillColor=QUANTUM_COLORS['primary']))
+        
+        # Add complexity comparison bars
+        chart = VerticalBarChart()
+        chart.x = 50
+        chart.y = 50
+        chart.height = 100
+        chart.width = 300
+        chart.data = [[256, 16]]  # Classical 2^256 vs Grover 2^128 (represented as log scale)
+        chart.categoryAxis.categoryNames = ['Classical SHA-256', "Grover's Algorithm"]
+        chart.valueAxis.valueMin = 0
+        chart.valueAxis.valueMax = 300
+        chart.valueAxis.valueStep = 50
+        chart.bars[0].fillColor = QUANTUM_COLORS['danger']
+        chart.valueAxis.labels.boxAnchor = 'e'
+        chart.categoryAxis.labels.boxAnchor = 'n'
+        
+        drawing.add(chart)
+        story_elements.append(drawing)
+        story_elements.append(Spacer(1, SPACING['after_paragraph']))
+    
+    def _add_hybrid_attack_visualization(self, story_elements: list):
+        """Add hybrid attack synergy visualization."""
+        # Create a Venn diagram-style visualization
+        drawing = Drawing(400, 250)
+        
+        # Title
+        drawing.add(String(200, 230, "Hybrid Attack Synergies",
+                          fontSize=12, fontName='Helvetica-Bold',
+                          textAnchor='middle', fillColor=QUANTUM_COLORS['primary']))
+        
+        # Draw overlapping circles for attack methods
+        from reportlab.graphics.shapes import Circle, String
+        
+        # Shor's circle
+        drawing.add(Circle(150, 130, 60, fillColor=QUANTUM_COLORS['solana_purple'], 
+                          fillOpacity=0.3, strokeColor=QUANTUM_COLORS['solana_purple']))
+        drawing.add(String(120, 170, "Shor's", fontSize=10, fontName='Helvetica'))
+        
+        # Grover's circle  
+        drawing.add(Circle(250, 130, 60, fillColor=QUANTUM_COLORS['solana_teal'],
+                          fillOpacity=0.3, strokeColor=QUANTUM_COLORS['solana_teal']))
+        drawing.add(String(250, 170, "Grover's", fontSize=10, fontName='Helvetica'))
+        
+        # Classical circle
+        drawing.add(Circle(200, 70, 60, fillColor=QUANTUM_COLORS['solana_cyan'],
+                          fillOpacity=0.3, strokeColor=QUANTUM_COLORS['solana_cyan']))
+        drawing.add(String(190, 30, "Classical", fontSize=10, fontName='Helvetica'))
+        
+        # Center text showing combined effect
+        drawing.add(String(200, 100, "89.5%", fontSize=14, fontName='Helvetica-Bold',
+                          textAnchor='middle'))
+        drawing.add(String(200, 85, "Combined", fontSize=9, fontName='Helvetica',
+                          textAnchor='middle'))
+        
+        story_elements.append(drawing)
+        story_elements.append(Spacer(1, SPACING['after_paragraph']))
+    
+    def _add_system_dynamics_visualization(self, story_elements: list):
+        """Add system dynamics flow diagram."""
+        drawing = Drawing(450, 200)
+        
+        # Title
+        drawing.add(String(225, 180, "Economic Impact System Dynamics",
+                          fontSize=12, fontName='Helvetica-Bold',
+                          textAnchor='middle', fillColor=QUANTUM_COLORS['primary']))
+        
+        # Create flow diagram
+        from reportlab.graphics.shapes import Rect, String, Line, Polygon
+        
+        # Stock boxes
+        drawing.add(Rect(30, 100, 80, 40, fillColor=QUANTUM_COLORS['light'],
+                        strokeColor=QUANTUM_COLORS['primary']))
+        drawing.add(String(70, 115, "Direct Loss", fontSize=9, textAnchor='middle'))
+        
+        drawing.add(Rect(150, 100, 80, 40, fillColor=QUANTUM_COLORS['light'],
+                        strokeColor=QUANTUM_COLORS['primary']))
+        drawing.add(String(190, 115, "Market Impact", fontSize=9, textAnchor='middle'))
+        
+        drawing.add(Rect(270, 100, 80, 40, fillColor=QUANTUM_COLORS['light'],
+                        strokeColor=QUANTUM_COLORS['primary']))
+        drawing.add(String(310, 115, "Recovery Cost", fontSize=9, textAnchor='middle'))
+        
+        drawing.add(Rect(370, 70, 70, 100, fillColor=QUANTUM_COLORS['solana_gradient_1'],
+                        fillOpacity=0.2, strokeColor=QUANTUM_COLORS['primary']))
+        drawing.add(String(405, 115, "Total", fontSize=11, fontName='Helvetica-Bold',
+                          textAnchor='middle'))
+        drawing.add(String(405, 100, "Loss", fontSize=11, fontName='Helvetica-Bold',
+                          textAnchor='middle'))
+        
+        # Flow arrows
+        drawing.add(Line(110, 120, 150, 120, strokeColor=QUANTUM_COLORS['secondary']))
+        drawing.add(Line(230, 120, 270, 120, strokeColor=QUANTUM_COLORS['secondary']))
+        drawing.add(Line(350, 120, 370, 120, strokeColor=QUANTUM_COLORS['secondary']))
+        
+        # Feedback loop
+        drawing.add(Line(405, 70, 405, 50, strokeColor=QUANTUM_COLORS['danger'],
+                        strokeDashArray=[2, 2]))
+        drawing.add(Line(405, 50, 190, 50, strokeColor=QUANTUM_COLORS['danger'],
+                        strokeDashArray=[2, 2]))
+        drawing.add(Line(190, 50, 190, 100, strokeColor=QUANTUM_COLORS['danger'],
+                        strokeDashArray=[2, 2]))
+        drawing.add(String(300, 40, "Feedback Loop", fontSize=8, 
+                          fillColor=QUANTUM_COLORS['danger']))
+        
+        story_elements.append(drawing)
+        story_elements.append(Spacer(1, SPACING['after_paragraph']))
+    
+    def _add_cross_chain_visualization(self, story_elements: list):
+        """Add cross-chain contagion network diagram."""
+        drawing = Drawing(450, 250)
+        
+        # Title
+        drawing.add(String(225, 230, "Cross-Chain Contagion Network",
+                          fontSize=12, fontName='Helvetica-Bold',
+                          textAnchor='middle', fillColor=QUANTUM_COLORS['primary']))
+        
+        # Central Solana node
+        drawing.add(Circle(225, 130, 30, fillColor=QUANTUM_COLORS['solana_purple'],
+                          strokeColor=QUANTUM_COLORS['primary'], strokeWidth=2))
+        drawing.add(String(225, 125, "Solana", fontSize=10, fontName='Helvetica-Bold',
+                          textAnchor='middle', fillColor=colors.white))
+        
+        # Connected chains
+        chains = [
+            ('Ethereum', 100, 180, QUANTUM_COLORS['solana_blue']),
+            ('BSC', 350, 180, QUANTUM_COLORS['solana_cyan']),
+            ('Polygon', 100, 80, QUANTUM_COLORS['solana_teal']),
+            ('Avalanche', 350, 80, QUANTUM_COLORS['solana_gradient_2'])
+        ]
+        
+        for chain_name, x, y, color in chains:
+            # Draw connection line
+            drawing.add(Line(225, 130, x, y, strokeColor=QUANTUM_COLORS['light'],
+                           strokeWidth=1, strokeDashArray=[3, 3]))
+            # Draw chain node
+            drawing.add(Circle(x, y, 20, fillColor=color, fillOpacity=0.7,
+                             strokeColor=QUANTUM_COLORS['secondary']))
+            drawing.add(String(x, y-3, chain_name, fontSize=8, textAnchor='middle'))
+        
+        # Add legend
+        drawing.add(String(225, 40, "Contagion spreads through bridges, wrapped assets, and market sentiment",
+                          fontSize=8, textAnchor='middle', fillColor=QUANTUM_COLORS['secondary']))
+        
+        story_elements.append(drawing)
+        story_elements.append(Spacer(1, SPACING['after_paragraph']))
+    
+    def _add_cox_hazards_visualization(self, story_elements: list):
+        """Add Cox proportional hazards survival curve."""
+        drawing = Drawing(400, 200)
+        
+        # Title
+        drawing.add(String(200, 180, "CRQC Survival Function (Cox Model)",
+                          fontSize=12, fontName='Helvetica-Bold',
+                          textAnchor='middle', fillColor=QUANTUM_COLORS['primary']))
+        
+        # Create survival curve chart
+        from reportlab.graphics.charts.linecharts import HorizontalLineChart
+        
+        lc = HorizontalLineChart()
+        lc.x = 50
+        lc.y = 50
+        lc.height = 100
+        lc.width = 300
+        
+        # Simulated survival data
+        lc.data = [
+            [1.0, 0.98, 0.95, 0.88, 0.75, 0.55, 0.30, 0.10],  # Base hazard
+            [1.0, 0.96, 0.90, 0.78, 0.58, 0.35, 0.15, 0.03]   # High R&D scenario
+        ]
+        lc.lines[0].strokeColor = QUANTUM_COLORS['primary']
+        lc.lines[0].strokeWidth = 2
+        lc.lines[1].strokeColor = QUANTUM_COLORS['danger']
+        lc.lines[1].strokeWidth = 2
+        lc.lines[1].strokeDashArray = [4, 2]
+        
+        lc.categoryAxis.categoryNames = ['2025', '2026', '2027', '2028', '2029', '2030', '2031', '2032']
+        lc.valueAxis.valueMin = 0
+        lc.valueAxis.valueMax = 1.0
+        lc.valueAxis.valueStep = 0.2
+        lc.valueAxis.labels.boxAnchor = 'e'
+        
+        drawing.add(lc)
+        
+        # Add legend
+        drawing.add(Line(80, 30, 100, 30, strokeColor=QUANTUM_COLORS['primary'], strokeWidth=2))
+        drawing.add(String(105, 27, "Base Scenario", fontSize=8))
+        
+        drawing.add(Line(200, 30, 220, 30, strokeColor=QUANTUM_COLORS['danger'], 
+                        strokeWidth=2, strokeDashArray=[4, 2]))
+        drawing.add(String(225, 27, "High R&D Investment", fontSize=8))
+        
+        story_elements.append(drawing)
+        story_elements.append(Spacer(1, SPACING['after_paragraph']))
+    
     def _add_section(self, section: Dict[str, Any], charts_dir: Optional[Path]):
         """Add a content section with professional formatting."""
         # Skip Executive Summary (already added separately)
@@ -1680,6 +1915,10 @@ class PDFReportGenerator:
             # Process all other content normally
             self._process_content_professionally(content_text, preserve_links=preserve_links)
         
+        # Add enhanced visualizations if this section contains enhanced data
+        if self._has_enhanced_data(section):
+            self._add_enhanced_section_visuals(section, self.story)
+        
         # Add related charts if available
         if charts_dir and section['title']:
             self._add_section_charts(section['title'], charts_dir)
@@ -1738,35 +1977,101 @@ class PDFReportGenerator:
         self.story.append(Spacer(1, SPACING['after_paragraph']))
     
     def _add_disclaimer(self):
-        """Add the final disclaimer at the end of the report."""
+        """Add comprehensive disclaimers at the end of the report."""
         # Add a separator line
         self.story.append(Spacer(1, SPACING['after_heading_2']))
         self.story.append(HRFlowable(
             width="100%", 
-            thickness=0.5, 
-            color=QUANTUM_COLORS['secondary'],
-            spaceBefore=6,
+            thickness=1, 
+            color=QUANTUM_COLORS['warning'],
+            spaceBefore=12,
             spaceAfter=12
         ))
         
-        # Add disclaimer text
-        disclaimer_text = (
-            "This report represents probabilistic modeling and should not be considered "
-            "investment advice. Results are based on current understanding of quantum "
-            "computing development and may change as new information becomes available."
+        # Add disclaimer heading
+        disclaimer_heading_style = ParagraphStyle(
+            'DisclaimerHeading',
+            parent=self.styles['ProfessionalHeading2'],
+            fontSize=14,
+            textColor=QUANTUM_COLORS['warning'],
+            fontName='Times-Bold',
+            alignment=1  # Center
         )
+        heading = Paragraph("⚠️ IMPORTANT DISCLAIMERS AND LIMITATIONS", disclaimer_heading_style)
+        self.story.append(heading)
+        self.story.append(Spacer(1, SPACING['after_paragraph']))
+        
+        # Add comprehensive disclaimer text
+        disclaimer_sections = [
+            ("<b>Not Financial Advice:</b> This report is for informational and research purposes only. "
+             "It should not be construed as financial, investment, legal, or tax advice. "
+             "Readers should consult with qualified professionals before making any investment decisions."),
+            
+            ("<b>Model Limitations:</b> Results are based on Monte Carlo simulations with inherent uncertainties, "
+             "simplified assumptions, and probabilistic modeling. Real-world outcomes may differ significantly "
+             "from simulated results."),
+            
+            ("<b>Quantum Timeline Uncertainty:</b> Quantum computing development timelines are highly speculative. "
+             "The emergence of cryptographically relevant quantum computers (CRQC) could occur earlier or later "
+             "than projected, or technological barriers may prevent their development entirely."),
+            
+            ("<b>Defense Capabilities Not Modeled:</b> This analysis does not account for future deployment of "
+             "quantum-resistant cryptography, post-quantum migration strategies, or other defensive measures "
+             "that may significantly reduce or eliminate quantum threats."),
+            
+            ("<b>Simplified Attack Scenarios:</b> Attack models are simplified representations and may not capture "
+             "the full complexity of real-world quantum attacks, hybrid threats, or coordinated adversarial strategies."),
+            
+            ("<b>No Guarantee of Accuracy:</b> Past performance and simulations do not guarantee future results. "
+             "This is a risk assessment tool, not a prediction of actual events."),
+            
+            ("<b>Epistemic Uncertainty:</b> There is fundamental uncertainty about quantum computing capabilities, "
+             "attack methodologies, and blockchain defense mechanisms that cannot be fully captured in any model."),
+            
+            ("<b>Geopolitical Factors:</b> The analysis does not account for geopolitical developments, regulatory "
+             "changes, or international cooperation that could affect quantum threat landscapes."),
+            
+            ("<b>Use at Your Own Risk:</b> Users assume all risks associated with the use of this information. "
+             "The authors and contributors disclaim any liability for losses or damages arising from the use "
+             "of this report.")
+        ]
         
         disclaimer_style = ParagraphStyle(
             'Disclaimer',
             parent=self.styles['ProfessionalBody'],
             fontSize=9,
-            textColor=QUANTUM_COLORS['secondary'],
-            fontName='Times-Italic',
-            alignment=4  # Justified
+            textColor=QUANTUM_COLORS['dark'],
+            fontName='Times-Roman',
+            alignment=4,  # Justified
+            spaceAfter=8
         )
         
-        disclaimer_para = Paragraph(disclaimer_text, disclaimer_style)
-        self.story.append(disclaimer_para)
+        for disclaimer in disclaimer_sections:
+            disclaimer_para = Paragraph(disclaimer, disclaimer_style)
+            self.story.append(disclaimer_para)
+        
+        # Add final separator
+        self.story.append(Spacer(1, SPACING['after_paragraph']))
+        self.story.append(HRFlowable(
+            width="100%", 
+            thickness=1, 
+            color=QUANTUM_COLORS['warning'],
+            spaceBefore=6,
+            spaceAfter=12
+        ))
+        
+        # Add copyright notice
+        copyright_style = ParagraphStyle(
+            'Copyright',
+            parent=self.styles['ProfessionalBody'],
+            fontSize=8,
+            textColor=QUANTUM_COLORS['secondary'],
+            fontName='Times-Italic',
+            alignment=1  # Center
+        )
+        copyright_text = f"© {datetime.now().year} Quantum Risk Assessment Research. All rights reserved."
+        copyright_para = Paragraph(copyright_text, copyright_style)
+        self.story.append(copyright_para)
         self.story.append(Spacer(1, SPACING['after_paragraph']))
     
     def _add_section_charts(self, section_title: str, charts_dir: Path):

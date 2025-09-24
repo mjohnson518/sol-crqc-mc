@@ -49,6 +49,14 @@ class QuantumParameters:
         2034: 0.25,
         2035: 0.30,
     })
+    
+    # Grover's algorithm parameters for hash attacks
+    grover_qubits_sha256: int = 1000000  # ~10^6 qubits for effective SHA-256 attacks
+    grover_emergence_median_year: int = 2035  # Median year for Grover capability
+    grover_speedup_factor: float = 128.0  # Square root speedup (2^256 -> 2^128)
+    poh_forgery_amplification: float = 1.2  # Extra risk factor for Solana's PoH
+    grover_gate_speed_mhz: float = 1.0  # Gate speed for Grover operations
+    grover_success_probability: float = 0.95  # Success rate for Grover attacks
 
 
 @dataclass
@@ -123,6 +131,24 @@ class SimulationParameters:
     start_year: int = 2025
     end_year: int = 2045
     time_step_days: int = 30  # Simulation time step
+    
+    # Advanced features flags (for backward compatibility)
+    use_advanced_models: bool = False  # Enable advanced statistical models
+    enable_live_data: bool = True  # Enable fetching live data from APIs
+    enable_grover_modeling: bool = True  # Enable Grover's algorithm modeling
+    enable_hybrid_attacks: bool = True  # Enable hybrid quantum-classical attacks
+    enable_extended_reports: bool = True  # Include enhanced PDF reports
+    weekly_time_steps_for_attacks: bool = False  # Use weekly steps for short attacks
+    enable_gpu_acceleration: bool = False  # Use GPU if available
+    enable_copulas: bool = True  # Use copulas for joint distributions
+    enable_sensitivity_analysis: bool = True  # Run sensitivity analysis
+    enable_ethical_scenarios: bool = False  # Generate ethical impact scenarios
+    
+    # Dynamic calibration options
+    calibrate_from_live_data: bool = False  # Use live data to calibrate parameters
+    cache_duration_hours: float = 1.0  # How long to cache live data
+    weekly_time_steps: bool = False  # Use weekly time steps for short-term modeling
+    bootstrap_iterations: int = 1000  # Number of bootstrap samples for statistics
     
     # Output settings
     output_dir: Path = field(default_factory=lambda: Path("data/output"))

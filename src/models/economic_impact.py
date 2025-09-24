@@ -3,6 +3,13 @@ Economic impact model for quantum attacks on Solana.
 
 This module models the economic consequences of successful quantum attacks,
 including direct losses, market reactions, and recovery costs.
+
+Enhanced features (controlled by config flags):
+- System dynamics with stocks/flows model
+- Vector Autoregression (VAR) for recovery forecasts
+- Regulatory response branching
+- Cross-chain contagion effects
+- Grover-amplified DeFi cascades
 """
 
 import numpy as np
@@ -12,9 +19,22 @@ from dataclasses import dataclass, field
 import logging
 from enum import Enum
 import math
+import pandas as pd
+
+# Import statsmodels for VAR if available
+try:
+    from statsmodels.tsa.api import VAR
+    from statsmodels.tsa.stattools import adfuller, acf
+    STATSMODELS_AVAILABLE = True
+except ImportError:
+    STATSMODELS_AVAILABLE = False
+    logging.info("statsmodels not available - VAR models will use fallback implementation")
 
 from src.config import EconomicParameters
-from src.models.attack_scenarios import AttackScenario, AttackType, AttackSeverity, AttackerProfile
+from src.models.attack_scenarios import (
+    AttackScenario, AttackType, AttackSeverity, AttackerProfile,
+    GroverAttack, HybridAttack
+)
 from src.models.network_state import NetworkSnapshot
 from src.distributions.probability_dists import EconomicDistributions
 from src.models.stablecoin_vulnerability import StablecoinVulnerabilityModel
@@ -30,6 +50,10 @@ class ImpactType(Enum):
     REPUTATION = "reputation"            # Long-term reputation damage
     MIGRATION_COST = "migration_cost"    # Cost of migrating to quantum-safe
     RECOVERY_COST = "recovery_cost"      # Cost to recover from attack
+    # New impact types
+    CROSS_CHAIN_CONTAGION = "cross_chain_contagion"  # Spillover to other chains
+    REGULATORY_RESPONSE = "regulatory_response"      # Regulatory intervention costs
+    GROVER_AMPLIFICATION = "grover_amplification"    # Additional losses from Grover attacks
 
 
 class RecoverySpeed(Enum):
@@ -39,6 +63,104 @@ class RecoverySpeed(Enum):
     MODERATE = "moderate"     # 1-4 weeks
     SLOW = "slow"             # 1-3 months
     VERY_SLOW = "very_slow"   # > 3 months
+
+
+@dataclass
+class SystemDynamicsState:
+    """System dynamics state with stocks and flows."""
+    
+    # Stocks (accumulated values)
+    total_value_locked: float  # Current TVL (stock)
+    market_confidence: float   # Confidence level (0-1)
+    regulatory_pressure: float # Regulatory attention level (0-1)
+    cross_chain_exposure: float # Exposure to other chains (0-1)
+    
+    # Flows (rates of change)
+    value_inflow_rate: float   # TVL inflow rate (USD/day)
+    value_outflow_rate: float  # TVL outflow rate (USD/day)
+    confidence_decay_rate: float  # Confidence decay rate (per day)
+    contagion_spread_rate: float  # Cross-chain spread rate
+    
+    # Time delays
+    market_reaction_delay: float  # Days for market to react
+    regulatory_response_delay: float  # Days for regulatory response
+    recovery_initiation_delay: float  # Days to start recovery
+    
+    @property
+    def net_flow_rate(self) -> float:
+        """Calculate net flow rate."""
+        return self.value_inflow_rate - self.value_outflow_rate
+    
+    @property
+    def is_stable(self) -> bool:
+        """Check if system is in stable state."""
+        return abs(self.net_flow_rate) < 0.01 * self.total_value_locked
+
+
+@dataclass
+class VARForecast:
+    """Vector Autoregression forecast for recovery."""
+    
+    # Time series variables
+    tvl_series: np.ndarray      # TVL time series
+    price_series: np.ndarray    # Price time series
+    volume_series: np.ndarray   # Volume time series
+    confidence_series: np.ndarray # Confidence time series
+    
+    # VAR model parameters
+    lag_order: int              # Optimal lag order
+    coefficients: np.ndarray    # VAR coefficients
+    residuals: np.ndarray       # Model residuals
+    
+    # Forecasts
+    forecast_horizon: int       # Days to forecast
+    tvl_forecast: np.ndarray   # Forecasted TVL
+    price_forecast: np.ndarray # Forecasted price
+    confidence_intervals: Dict[str, Tuple[np.ndarray, np.ndarray]]  # CI for each series
+    
+    # Exogenous variables
+    leverage_factor: float      # Leverage in system
+    regulatory_intervention: bool  # Whether regulators intervene
+    
+    @property
+    def forecast_accuracy(self) -> float:
+        """Estimate forecast accuracy based on residuals."""
+        if len(self.residuals) == 0:
+            return 0.0
+        return 1.0 - np.std(self.residuals) / np.mean(np.abs(self.tvl_series))
+
+
+@dataclass
+class RegulatoryResponse:
+    """Regulatory response to quantum attack."""
+    
+    response_type: str  # "emergency_halt", "asset_freeze", "bailout", "none"
+    response_time_days: float
+    intervention_cost: float
+    market_stabilization_effect: float  # 0-1, how much it helps
+    long_term_restrictions: List[str]  # New regulations imposed
+    cross_jurisdiction_coordination: bool
+    
+    @property
+    def is_effective(self) -> bool:
+        """Check if regulatory response is effective."""
+        return self.market_stabilization_effect > 0.5
+
+
+@dataclass
+class CrossChainContagion:
+    """Cross-chain contagion effects."""
+    
+    affected_chains: List[str]  # List of affected blockchains
+    contagion_probabilities: Dict[str, float]  # Chain -> probability
+    spillover_losses: Dict[str, float]  # Chain -> loss amount
+    total_ecosystem_impact: float
+    contagion_speed_days: float  # How fast it spreads
+    
+    @property
+    def systemic_risk(self) -> bool:
+        """Check if represents systemic risk."""
+        return len(self.affected_chains) > 3 or self.total_ecosystem_impact > 1e10
 
 
 @dataclass
@@ -94,6 +216,11 @@ class EconomicLoss:
     recovery_speed: RecoverySpeed
     recovery_timeline_days: float
     confidence_level: float
+    # New fields for enhanced modeling
+    system_dynamics: Optional[SystemDynamicsState] = None
+    var_forecast: Optional[VARForecast] = None
+    regulatory_response: Optional[RegulatoryResponse] = None
+    cross_chain_contagion: Optional[CrossChainContagion] = None
     
     def get_loss_by_type(self, impact_type: ImpactType) -> float:
         """Get loss amount for specific impact type."""
@@ -148,17 +275,30 @@ class EconomicImpactModel:
     - DeFi protocol cascading failures
     - Reputation damage
     - Migration and recovery costs
+    - System dynamics with stocks and flows
+    - VAR-based recovery forecasts
+    - Cross-chain contagion
+    - Regulatory responses
     """
     
-    def __init__(self, params: Optional[EconomicParameters] = None):
+    def __init__(self, params: Optional[EconomicParameters] = None,
+                 use_system_dynamics: bool = False,
+                 use_var_forecast: bool = False,
+                 model_cross_chain: bool = False):
         """
         Initialize economic impact model.
         
         Args:
             params: Economic parameters configuration
+            use_system_dynamics: Whether to use system dynamics modeling
+            use_var_forecast: Whether to use VAR for recovery forecasting
+            model_cross_chain: Whether to model cross-chain contagion
         """
         self.params = params or EconomicParameters()
         self.stablecoin_model = StablecoinVulnerabilityModel()
+        self.use_system_dynamics = use_system_dynamics
+        self.use_var_forecast = use_var_forecast and STATSMODELS_AVAILABLE
+        self.model_cross_chain = model_cross_chain
         
         # Impact multipliers by attack type
         self.attack_impact_multipliers = {
@@ -167,7 +307,13 @@ class EconomicImpactModel:
             AttackType.DOUBLE_SPEND: 0.5,
             AttackType.CONSENSUS_HALT: 0.7,
             AttackType.CONSENSUS_CONTROL: 0.9,
-            AttackType.SYSTEMIC_FAILURE: 1.0
+            AttackType.SYSTEMIC_FAILURE: 1.0,
+            # New attack types
+            AttackType.GROVER_POH: 0.8,
+            AttackType.GROVER_HASH: 0.6,
+            AttackType.HYBRID_SHOR_GROVER: 0.85,
+            AttackType.HYBRID_QUANTUM_CLASSICAL: 0.75,
+            AttackType.POH_FORGERY: 0.9
         }
         
         # Market reaction severity by attack severity
@@ -184,6 +330,16 @@ class EconomicImpactModel:
             AttackSeverity.MEDIUM: RecoverySpeed.MODERATE,
             AttackSeverity.HIGH: RecoverySpeed.SLOW,
             AttackSeverity.CRITICAL: RecoverySpeed.VERY_SLOW
+        }
+        
+        # Cross-chain relationships for contagion modeling
+        self.cross_chain_correlations = {
+            'ethereum': 0.7,    # High correlation
+            'polygon': 0.6,      # Medium-high correlation
+            'avalanche': 0.5,    # Medium correlation
+            'binance': 0.4,      # Medium-low correlation
+            'cardano': 0.3,      # Low correlation
+            'bitcoin': 0.2       # Very low correlation (different architecture)
         }
     
     def calculate_impact(
@@ -238,6 +394,38 @@ class EconomicImpactModel:
         recovery_cost = self._calculate_recovery_cost(rng, attack_scenario, components)
         components.append(recovery_cost)
         
+        # 8. Grover amplification (if applicable)
+        if hasattr(attack_scenario, 'grover_attack') and attack_scenario.grover_attack:
+            grover_impact = self._calculate_grover_amplification(
+                rng, attack_scenario, network_snapshot
+            )
+            if grover_impact.amount_usd > 0:
+                components.append(grover_impact)
+        
+        # 9. Cross-chain contagion (if enabled)
+        cross_chain_contagion = None
+        if self.model_cross_chain:
+            contagion_impact, cross_chain_contagion = self._calculate_cross_chain_contagion(
+                rng, attack_scenario, market_reaction
+            )
+            if contagion_impact.amount_usd > 0:
+                components.append(contagion_impact)
+        
+        # 10. Regulatory response
+        regulatory_response = self._model_regulatory_response(
+            rng, attack_scenario, sum(c.amount_usd for c in components)
+        )
+        if regulatory_response and regulatory_response.intervention_cost > 0:
+            reg_component = ImpactComponent(
+                impact_type=ImpactType.REGULATORY_RESPONSE,
+                amount_usd=regulatory_response.intervention_cost,
+                percentage_of_tvl=regulatory_response.intervention_cost / self.params.total_value_locked_usd,
+                time_to_realize_days=regulatory_response.response_time_days,
+                confidence_interval=(regulatory_response.intervention_cost * 0.5,
+                                    regulatory_response.intervention_cost * 1.5)
+            )
+            components.append(reg_component)
+        
         # Calculate totals
         total_loss = sum(c.amount_usd for c in components)
         immediate_loss = sum(c.amount_usd for c in components if c.is_immediate)
@@ -246,6 +434,24 @@ class EconomicImpactModel:
         # Determine recovery timeline
         recovery_speed = self.recovery_speeds[attack_scenario.severity]
         recovery_timeline = self._estimate_recovery_timeline(recovery_speed, attack_scenario)
+        
+        # Apply system dynamics if enabled
+        system_dynamics = None
+        if self.use_system_dynamics:
+            system_dynamics = self._calculate_system_dynamics(
+                total_loss, market_reaction, network_snapshot
+            )
+            # Adjust losses based on system dynamics
+            total_loss = self._apply_system_dynamics_adjustment(
+                total_loss, system_dynamics
+            )
+        
+        # Generate VAR forecast if enabled
+        var_forecast = None
+        if self.use_var_forecast:
+            var_forecast = self._generate_var_forecast(
+                rng, market_reaction, recovery_timeline
+            )
         
         return EconomicLoss(
             attack_scenario=attack_scenario,
@@ -256,7 +462,11 @@ class EconomicImpactModel:
             long_term_loss_usd=long_term_loss,
             recovery_speed=recovery_speed,
             recovery_timeline_days=recovery_timeline,
-            confidence_level=0.95
+            confidence_level=0.95,
+            system_dynamics=system_dynamics,
+            var_forecast=var_forecast,
+            regulatory_response=regulatory_response,
+            cross_chain_contagion=cross_chain_contagion
         )
     
     def _calculate_direct_loss(
@@ -710,19 +920,393 @@ class EconomicImpactModel:
         )
 
 
+    def _calculate_grover_amplification(
+        self,
+        rng: np.random.RandomState,
+        attack_scenario: AttackScenario,
+        network_snapshot: NetworkSnapshot
+    ) -> ImpactComponent:
+        """Calculate additional economic impact from Grover attacks."""
+        if not hasattr(attack_scenario, 'grover_attack') or not attack_scenario.grover_attack:
+            return ImpactComponent(
+                impact_type=ImpactType.GROVER_AMPLIFICATION,
+                amount_usd=0,
+                percentage_of_tvl=0,
+                time_to_realize_days=0,
+                confidence_interval=(0, 0)
+            )
+        
+        grover = attack_scenario.grover_attack
+        amplification = 0
+        
+        # PoH vulnerability creates massive impact
+        if grover.poh_vulnerability:
+            # Can forge PoH, essentially breaking Solana's core consensus
+            base_impact = self.params.total_value_locked_usd * 0.3  # 30% TVL at risk
+            
+            # Amplification factor for PoH attacks
+            if grover.can_rewrite_history:
+                # Can rewrite history - catastrophic
+                amplification = base_impact * rng.uniform(2, 3)
+            else:
+                # Can forge timestamps - severe
+                amplification = base_impact * rng.uniform(1.2, 1.8)
+        else:
+            # Other hash attacks still significant
+            amplification = self.params.total_value_locked_usd * 0.1 * rng.uniform(0.5, 1.5)
+        
+        # Adjust for attack time - faster attacks are worse
+        if grover.attack_time_hours < 1:
+            amplification *= 1.5  # Very fast attack
+        elif grover.attack_time_hours < 24:
+            amplification *= 1.2  # Fast attack
+        
+        return ImpactComponent(
+            impact_type=ImpactType.GROVER_AMPLIFICATION,
+            amount_usd=amplification,
+            percentage_of_tvl=amplification / self.params.total_value_locked_usd,
+            time_to_realize_days=rng.uniform(0.1, 1),
+            confidence_interval=(amplification * 0.5, amplification * 2)
+        )
+    
+    def _calculate_cross_chain_contagion(
+        self,
+        rng: np.random.RandomState,
+        attack_scenario: AttackScenario,
+        market_reaction: MarketReaction
+    ) -> Tuple[ImpactComponent, CrossChainContagion]:
+        """Calculate cross-chain contagion effects."""
+        # Determine contagion probability based on attack severity
+        base_contagion_prob = market_reaction.total_market_impact
+        
+        affected_chains = []
+        contagion_probs = {}
+        spillover_losses = {}
+        
+        for chain, correlation in self.cross_chain_correlations.items():
+            # Probability of contagion based on correlation
+            contagion_prob = base_contagion_prob * correlation
+            contagion_probs[chain] = contagion_prob
+            
+            if rng.random() < contagion_prob:
+                affected_chains.append(chain)
+                
+                # Loss proportional to correlation and market cap
+                # Assume other chains have similar or larger TVL
+                chain_tvl = self.params.total_value_locked_usd * rng.uniform(0.5, 2.0)
+                loss_percentage = correlation * market_reaction.tvl_drop_percent / 100
+                spillover_losses[chain] = chain_tvl * loss_percentage
+        
+        total_spillover = sum(spillover_losses.values())
+        
+        contagion = CrossChainContagion(
+            affected_chains=affected_chains,
+            contagion_probabilities=contagion_probs,
+            spillover_losses=spillover_losses,
+            total_ecosystem_impact=total_spillover,
+            contagion_speed_days=rng.uniform(0.5, 3)
+        )
+        
+        impact = ImpactComponent(
+            impact_type=ImpactType.CROSS_CHAIN_CONTAGION,
+            amount_usd=total_spillover * 0.1,  # Solana bears 10% of ecosystem damage
+            percentage_of_tvl=total_spillover * 0.1 / self.params.total_value_locked_usd,
+            time_to_realize_days=contagion.contagion_speed_days,
+            confidence_interval=(total_spillover * 0.05, total_spillover * 0.2)
+        )
+        
+        return impact, contagion
+    
+    def _model_regulatory_response(
+        self,
+        rng: np.random.RandomState,
+        attack_scenario: AttackScenario,
+        total_loss: float
+    ) -> Optional[RegulatoryResponse]:
+        """Model regulatory response to attack."""
+        # Response probability based on severity and loss
+        response_prob = min(0.95, total_loss / (self.params.total_value_locked_usd * 0.5))
+        
+        if rng.random() > response_prob:
+            return None
+        
+        # Determine response type based on severity
+        if attack_scenario.severity == AttackSeverity.CRITICAL:
+            response_types = ['emergency_halt', 'asset_freeze', 'bailout']
+            response_type = rng.choice(response_types, p=[0.3, 0.3, 0.4])
+        elif attack_scenario.severity == AttackSeverity.HIGH:
+            response_types = ['emergency_halt', 'asset_freeze', 'none']
+            response_type = rng.choice(response_types, p=[0.4, 0.4, 0.2])
+        else:
+            response_type = 'none' if rng.random() < 0.7 else 'emergency_halt'
+        
+        # Calculate response parameters
+        if response_type == 'bailout':
+            intervention_cost = total_loss * rng.uniform(0.3, 0.6)
+            stabilization_effect = rng.uniform(0.6, 0.9)
+            response_days = rng.uniform(1, 7)
+        elif response_type == 'emergency_halt':
+            intervention_cost = self.params.total_value_locked_usd * 0.01  # Cost of halt
+            stabilization_effect = rng.uniform(0.4, 0.7)
+            response_days = rng.uniform(0.1, 1)
+        elif response_type == 'asset_freeze':
+            intervention_cost = total_loss * 0.05  # Administrative costs
+            stabilization_effect = rng.uniform(0.3, 0.6)
+            response_days = rng.uniform(0.5, 2)
+        else:
+            intervention_cost = 0
+            stabilization_effect = 0
+            response_days = 0
+        
+        # Long-term restrictions
+        restrictions = []
+        if response_type != 'none':
+            possible_restrictions = [
+                'mandatory_quantum_safe_migration',
+                'enhanced_validator_requirements',
+                'cross_border_restrictions',
+                'defi_protocol_audits',
+                'stablecoin_reserves'
+            ]
+            n_restrictions = rng.poisson(2)
+            restrictions = rng.choice(possible_restrictions, 
+                                    size=min(n_restrictions, len(possible_restrictions)),
+                                    replace=False).tolist()
+        
+        return RegulatoryResponse(
+            response_type=response_type,
+            response_time_days=response_days,
+            intervention_cost=intervention_cost,
+            market_stabilization_effect=stabilization_effect,
+            long_term_restrictions=restrictions,
+            cross_jurisdiction_coordination=response_type == 'bailout'
+        )
+    
+    def _calculate_system_dynamics(
+        self,
+        total_loss: float,
+        market_reaction: MarketReaction,
+        network_snapshot: NetworkSnapshot
+    ) -> SystemDynamicsState:
+        """
+        Calculate system dynamics state using stocks and flows.
+        
+        Implements: L = D + M * C + R
+        Where: L = Total loss, D = Direct loss, M = Market multiplier,
+               C = Cascade effects, R = Recovery costs
+        """
+        # Initial stocks
+        tvl_stock = self.params.total_value_locked_usd * (1 - market_reaction.tvl_drop_percent / 100)
+        confidence_stock = 1.0 - market_reaction.total_market_impact
+        regulatory_pressure = min(1.0, total_loss / (self.params.total_value_locked_usd * 0.3))
+        cross_chain_exposure = 0.3  # Base exposure
+        
+        # Calculate flows based on market reaction
+        # Outflows increase with panic, inflows increase with confidence
+        value_outflow = tvl_stock * market_reaction.tvl_drop_percent / 100 / market_reaction.panic_duration_days
+        value_inflow = tvl_stock * confidence_stock * 0.1 / market_reaction.recovery_time_days
+        
+        # Confidence decay based on attack severity
+        confidence_decay = (1 - confidence_stock) / market_reaction.panic_duration_days
+        
+        # Contagion spread rate
+        contagion_rate = market_reaction.total_market_impact * 0.2  # 20% of impact spreads
+        
+        # Time delays
+        market_delay = 0.5  # Half day for market reaction
+        regulatory_delay = max(1, 7 - regulatory_pressure * 6)  # Faster with more pressure
+        recovery_delay = market_reaction.panic_duration_days
+        
+        return SystemDynamicsState(
+            total_value_locked=tvl_stock,
+            market_confidence=confidence_stock,
+            regulatory_pressure=regulatory_pressure,
+            cross_chain_exposure=cross_chain_exposure,
+            value_inflow_rate=value_inflow,
+            value_outflow_rate=value_outflow,
+            confidence_decay_rate=confidence_decay,
+            contagion_spread_rate=contagion_rate,
+            market_reaction_delay=market_delay,
+            regulatory_response_delay=regulatory_delay,
+            recovery_initiation_delay=recovery_delay
+        )
+    
+    def _apply_system_dynamics_adjustment(
+        self,
+        base_loss: float,
+        dynamics: SystemDynamicsState
+    ) -> float:
+        """
+        Apply system dynamics adjustment to losses.
+        
+        Formula: L = D + M * C + R
+        """
+        # Direct loss component
+        D = base_loss * 0.3  # 30% is direct
+        
+        # Market multiplier based on confidence
+        M = 2.0 - dynamics.market_confidence  # Multiplier from 1.0 to 2.0
+        
+        # Cascade effects based on flows
+        C = abs(dynamics.net_flow_rate) * 30  # 30 days of net flow
+        
+        # Recovery costs based on regulatory pressure
+        R = base_loss * dynamics.regulatory_pressure * 0.2
+        
+        # Apply formula
+        adjusted_loss = D + M * C + R
+        
+        # Ensure reasonable bounds
+        return max(base_loss, min(adjusted_loss, base_loss * 3))
+    
+    def _generate_var_forecast(
+        self,
+        rng: np.random.RandomState,
+        market_reaction: MarketReaction,
+        recovery_timeline: float
+    ) -> Optional[VARForecast]:
+        """Generate VAR forecast for recovery using Vector Autoregression."""
+        if not self.use_var_forecast:
+            return None
+        
+        # Generate synthetic historical data for VAR
+        n_historical = 100
+        
+        # Create correlated time series
+        mean = [100, 50, 1000, 0.8]  # TVL, Price, Volume, Confidence
+        cov = [[100, 30, 50, -10],
+               [30, 25, 20, -5],
+               [50, 20, 200, -15],
+               [-10, -5, -15, 0.1]]
+        
+        historical_data = rng.multivariate_normal(mean, cov, n_historical)
+        
+        # Apply shock based on market reaction
+        shock_size = int(n_historical * 0.1)
+        historical_data[-shock_size:, 0] *= (1 - market_reaction.tvl_drop_percent / 100)
+        historical_data[-shock_size:, 1] *= (1 - market_reaction.sol_price_drop_percent / 100)
+        historical_data[-shock_size:, 2] *= (1 - market_reaction.daily_volume_drop_percent / 100)
+        historical_data[-shock_size:, 3] *= 0.5  # Confidence drops
+        
+        # Extract series
+        tvl_series = historical_data[:, 0]
+        price_series = historical_data[:, 1]
+        volume_series = historical_data[:, 2]
+        confidence_series = historical_data[:, 3]
+        
+        if STATSMODELS_AVAILABLE:
+            # Use statsmodels VAR
+            try:
+                # Create dataframe
+                df = pd.DataFrame({
+                    'tvl': tvl_series,
+                    'price': price_series,
+                    'volume': volume_series,
+                    'confidence': confidence_series
+                })
+                
+                # Fit VAR model
+                model = VAR(df)
+                lag_order = model.select_order(maxlags=5).selected_orders['aic']
+                fitted_model = model.fit(lag_order)
+                
+                # Generate forecast
+                forecast_horizon = int(recovery_timeline)
+                forecast = fitted_model.forecast(df.values[-lag_order:], forecast_horizon)
+                
+                # Extract forecasts
+                tvl_forecast = forecast[:, 0]
+                price_forecast = forecast[:, 1]
+                
+                # Generate confidence intervals
+                forecast_ci = fitted_model.forecast_interval(df.values[-lag_order:], forecast_horizon)
+                ci_lower = forecast_ci[0]
+                ci_upper = forecast_ci[2]
+                
+                confidence_intervals = {
+                    'tvl': (ci_lower[:, 0], ci_upper[:, 0]),
+                    'price': (ci_lower[:, 1], ci_upper[:, 1])
+                }
+                
+                return VARForecast(
+                    tvl_series=tvl_series,
+                    price_series=price_series,
+                    volume_series=volume_series,
+                    confidence_series=confidence_series,
+                    lag_order=lag_order,
+                    coefficients=fitted_model.coefs,
+                    residuals=fitted_model.resid,
+                    forecast_horizon=forecast_horizon,
+                    tvl_forecast=tvl_forecast,
+                    price_forecast=price_forecast,
+                    confidence_intervals=confidence_intervals,
+                    leverage_factor=rng.uniform(1.5, 3.0),
+                    regulatory_intervention=rng.random() < 0.3
+                )
+            except Exception as e:
+                logging.warning(f"VAR model fitting failed: {e}")
+                # Fall through to simple forecast
+        
+        # Simple forecast fallback
+        forecast_horizon = int(recovery_timeline)
+        
+        # Exponential recovery
+        recovery_rate = 1 - np.exp(-3 / recovery_timeline)  # 95% recovery over timeline
+        tvl_forecast = tvl_series[-1] * (1 + recovery_rate * np.linspace(0, 1, forecast_horizon))
+        price_forecast = price_series[-1] * (1 + recovery_rate * 0.8 * np.linspace(0, 1, forecast_horizon))
+        
+        return VARForecast(
+            tvl_series=tvl_series,
+            price_series=price_series,
+            volume_series=volume_series,
+            confidence_series=confidence_series,
+            lag_order=2,
+            coefficients=np.random.randn(2, 4, 4) * 0.1,  # Random small coefficients
+            residuals=np.random.randn(len(tvl_series), 4) * 0.01,
+            forecast_horizon=forecast_horizon,
+            tvl_forecast=tvl_forecast,
+            price_forecast=price_forecast,
+            confidence_intervals={
+                'tvl': (tvl_forecast * 0.8, tvl_forecast * 1.2),
+                'price': (price_forecast * 0.7, price_forecast * 1.3)
+            },
+            leverage_factor=rng.uniform(1.5, 3.0),
+            regulatory_intervention=rng.random() < 0.3
+        )
+
+
 def test_economic_model():
     """Test the economic impact model."""
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent.parent))
     
-    from src.models.attack_scenarios import AttackScenario, AttackType, AttackVector, AttackSeverity
+    from src.models.attack_scenarios import (
+        AttackScenario, AttackType, AttackVector, AttackSeverity,
+        GroverAttack, HybridAttack
+    )
     from src.models.network_state import NetworkSnapshot, ValidatorState, ValidatorTier, MigrationStatus
     
-    model = EconomicImpactModel()
+    # Test with enhanced features
+    model = EconomicImpactModel(
+        use_system_dynamics=True,
+        use_var_forecast=True,
+        model_cross_chain=True
+    )
     rng = np.random.RandomState(42)
     
-    # Create test attack scenario
+    # Create test attack scenario with Grover component
+    grover_attack = GroverAttack(
+        target="PoH",
+        operations_required=2**128,
+        speedup_achieved=65536,  # Square root of 2^128
+        qubits_required=1000000,
+        gate_count=2**128 / 65536,
+        attack_time_hours=12.0,
+        poh_vulnerability=True,
+        can_rewrite_history=False
+    )
+    
     attack = AttackScenario(
         attack_type=AttackType.CONSENSUS_HALT,
         vector=AttackVector.VALIDATOR_KEYS,
@@ -734,7 +1318,8 @@ def test_economic_model():
         accounts_at_risk=1000000,
         time_to_execute=24.0,
         detection_probability=0.9,
-        mitigation_possible=True
+        mitigation_possible=True,
+        grover_attack=grover_attack
     )
     
     # Create test network
@@ -790,6 +1375,33 @@ def test_economic_model():
         print(f"\n  Milestones:")
         for milestone, days in recovery.milestones.items():
             print(f"    {milestone}: {days:.0f} days")
+    
+    # Show enhanced features if enabled
+    if impact.system_dynamics:
+        print(f"\nSystem Dynamics:")
+        print(f"  Net Flow Rate: ${impact.system_dynamics.net_flow_rate/1e6:.1f}M/day")
+        print(f"  Market Confidence: {impact.system_dynamics.market_confidence:.2%}")
+        print(f"  Regulatory Pressure: {impact.system_dynamics.regulatory_pressure:.2%}")
+        print(f"  System Stable: {impact.system_dynamics.is_stable}")
+    
+    if impact.var_forecast:
+        print(f"\nVAR Forecast:")
+        print(f"  Forecast Horizon: {impact.var_forecast.forecast_horizon} days")
+        print(f"  Forecast Accuracy: {impact.var_forecast.forecast_accuracy:.2%}")
+        print(f"  Leverage Factor: {impact.var_forecast.leverage_factor:.1f}x")
+    
+    if impact.regulatory_response:
+        print(f"\nRegulatory Response:")
+        print(f"  Type: {impact.regulatory_response.response_type}")
+        print(f"  Response Time: {impact.regulatory_response.response_time_days:.1f} days")
+        print(f"  Intervention Cost: ${impact.regulatory_response.intervention_cost/1e9:.2f}B")
+        print(f"  Effectiveness: {impact.regulatory_response.is_effective}")
+    
+    if impact.cross_chain_contagion:
+        print(f"\nCross-Chain Contagion:")
+        print(f"  Affected Chains: {', '.join(impact.cross_chain_contagion.affected_chains)}")
+        print(f"  Total Ecosystem Impact: ${impact.cross_chain_contagion.total_ecosystem_impact/1e9:.2f}B")
+        print(f"  Systemic Risk: {impact.cross_chain_contagion.systemic_risk}")
     
     print("\n✓ Economic model test passed")
 

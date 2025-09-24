@@ -25,6 +25,13 @@ from src.models.network_state import NetworkStateModel
 from src.models.attack_scenarios import AttackScenariosModel
 from src.models.economic_impact import EconomicImpactModel
 
+# Optional import for ethical scenarios
+try:
+    from src.models.ethical_scenarios import EthicalScenarioModel
+    ETHICAL_AVAILABLE = True
+except ImportError:
+    ETHICAL_AVAILABLE = False
+
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -119,11 +126,17 @@ def run_simulation(args):
         'economic_impact': EconomicImpactModel(config.economic)
     }
     
+    # Add ethical scenarios model if enabled and available
+    if config.enable_ethical_scenarios and ETHICAL_AVAILABLE:
+        models['ethical_scenarios'] = EthicalScenarioModel()
+    
     if args.verbose:
         print("  ✓ Quantum Timeline Model")
         print("  ✓ Network State Model")
         print("  ✓ Attack Scenarios Model")
         print("  ✓ Economic Impact Model")
+        if config.enable_ethical_scenarios and ETHICAL_AVAILABLE:
+            print("  ✓ Ethical Scenarios Model")
         print()
     
     # Create and run simulation
