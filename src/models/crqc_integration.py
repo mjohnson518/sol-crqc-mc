@@ -14,12 +14,14 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 import numpy as np
 from dataclasses import dataclass, field
+import math
 
 from .quantum_research import QuantumResearchDatabase
 from .bayesian_crqc import HierarchicalBayesianCRQC
 from .competing_risks_crqc import CompetingRisksCRQC
 from .realtime_calibration import RealTimeCalibrator, DataPoint
 from .geopolitical_model import GeopoliticalModel
+from .breakthrough_detector import BreakthroughDetector
 from src.analysis.uncertainty_quantification import UncertaintyAnalysis, UncertaintyReport
 
 logger = logging.getLogger(__name__)
@@ -83,6 +85,7 @@ class CRQCIntegratedModel:
         self.bayesian_model = HierarchicalBayesianCRQC()
         self.competing_risks = CompetingRisksCRQC()
         self.geopolitical_model = GeopoliticalModel()
+        self.breakthrough_detector = BreakthroughDetector()
         
         # Initialize real-time calibrator if enabled
         if self.enable_realtime:
@@ -172,6 +175,9 @@ class CRQCIntegratedModel:
         
         # Update competing risks parameters
         self._update_competing_risks(update)
+        
+        # Update breakthrough detector using latest signals
+        self._update_breakthrough_detector(self.calibrator.recent_data)
         
         # Adjust model weights based on recent performance
         self._update_model_weights(update)
@@ -297,7 +303,11 @@ class CRQCIntegratedModel:
         # 4. Geopolitical prediction
         geopolitical_prediction = self._get_geopolitical_prediction(current_year, horizon_years)
         predictions['geopolitical'] = geopolitical_prediction
-        self._latest_model_predictions['geopolitical'] = geopolitical_prediction
+        self._latest_model_predictions['geopolitical'] = predictions['geopolitical']
+
+        # Breakthrough signal prediction
+        predictions['breakthrough_detection'] = self._get_breakthrough_prediction(current_year, horizon_years)
+        self._latest_model_predictions['breakthrough_detection'] = predictions['breakthrough_detection']
         
         # Apply calibration adjustments
         adjustments = self._apply_calibration_adjustments(predictions)
@@ -314,6 +324,9 @@ class CRQCIntegratedModel:
         # Add warnings based on recent calibration
         if self.calibrator and self.calibrator.anomaly_buffer:
             ensemble_prediction.anomaly_warnings = list(self.calibrator.anomaly_buffer)[-5:]
+        breakthrough_assessment = self.breakthrough_detector.latest_assessment()
+        if breakthrough_assessment:
+            ensemble_prediction.anomaly_warnings.extend(breakthrough_assessment.alerts[:3])
         
         return ensemble_prediction
     
@@ -444,7 +457,7 @@ class CRQCIntegratedModel:
         prob_by_year = {}
         for year in range(current_year, current_year + horizon_years):
             delta = year - median_year
-            prob = 1 / (1 + np.exp(-delta / 2))
+            prob = 1 / (1 + math.exp(-delta / 2))
             prob_by_year[year] = prob
 
         return {
@@ -452,6 +465,37 @@ class CRQCIntegratedModel:
             'probability_by_year': prob_by_year,
             'dominant_pathway': 'geopolitical_acceleration',
             'metrics': metrics,
+        }
+    
+    def _get_breakthrough_prediction(self,
+                                     current_year: int,
+                                     horizon_years: int) -> Dict[str, Any]:
+        assessment = self.breakthrough_detector.latest_assessment()
+        if assessment is None:
+            base_prob = 0.02
+            composite_score = 0.0
+        else:
+            composite_score = assessment.composite_score
+            base_prob = min(0.5, 0.02 * math.exp(composite_score / 2))
+
+        prob_by_year = {}
+        cumulative = 0.0
+        for idx, year in enumerate(range(current_year, current_year + horizon_years)):
+            annual_prob = min(0.9, base_prob * (1 + 0.1 * idx))
+            cumulative = 1 - (1 - cumulative) * (1 - annual_prob)
+            prob_by_year[year] = cumulative
+
+        median_year = current_year + horizon_years
+        for year, cumulative_prob in prob_by_year.items():
+            if cumulative_prob >= 0.5:
+                median_year = year
+                break
+
+        return {
+            'median_year': float(median_year),
+            'probability_by_year': prob_by_year,
+            'dominant_pathway': 'breakthrough_detection',
+            'composite_score': composite_score,
         }
     
     def _apply_calibration_adjustments(self, 
@@ -599,6 +643,17 @@ class CRQCIntegratedModel:
             risk_factors['calibration_impact'] = abs(
                 self.calibration_adjustments.get('timeline_adjustment', 0)
             ) / 5.0  # Normalize by 5 years
+
+        # Geopolitical metrics
+        if 'geopolitical_investment_growth' not in risk_factors and 'geopolitical' in predictions:
+            geo_metrics = predictions['geopolitical'].get('metrics', {})
+            if geo_metrics:
+                risk_factors['geopolitical_investment_growth'] = geo_metrics.get('investment_growth', 0.0)
+                risk_factors['geopolitical_timeline_shift'] = geo_metrics.get('timeline_adjustment', 0.0)
+
+        # Breakthrough risk score
+        if 'breakthrough_detection' in predictions:
+            risk_factors['breakthrough_risk_score'] = predictions['breakthrough_detection'].get('composite_score', 0.0)
         
         return risk_factors
     
