@@ -137,6 +137,7 @@ class SimulationParameters:
     enable_live_data: bool = True  # Enable fetching live data from APIs
     enable_grover_modeling: bool = True  # Enable Grover's algorithm modeling
     enable_hybrid_attacks: bool = True  # Enable hybrid quantum-classical attacks
+    enable_realtime_calibration: bool = False  # Enable real-time CRQC calibration
     enable_extended_reports: bool = True  # Include enhanced PDF reports
     weekly_time_steps_for_attacks: bool = False  # Use weekly steps for short attacks
     enable_gpu_acceleration: bool = False  # Use GPU if available
