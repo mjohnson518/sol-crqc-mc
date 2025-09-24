@@ -16,8 +16,6 @@ This Monte Carlo simulation models the probabilistic impact of quantum computing
 
 **✅ VALIDATED**: Results confirmed by 10,000 iteration Monte Carlo simulation
 
-**⚠️ IMPORTANT**: All calculations follow standardized methodology documented in **[docs/economic_calculations.md](docs/economic_calculations.md)**
-
 | Metric | Value | Status |
 |--------|-------|--------|
 | **Total Value Locked (TVL)** | $12.74B | ✅ Validated |
