@@ -342,7 +342,7 @@ class AttackScenariosModel:
             use_agent_based_model: Whether to use agent-based modeling
         """
         self.params = params or QuantumParameters()
-        self.enable_grover = enable_grover
+        self.enable_grover = enable_grover and getattr(self.params, 'enable_grover_modeling', False)
         self.enable_hybrid_attacks = enable_hybrid_attacks
         self.use_agent_based_model = use_agent_based_model and MESA_AVAILABLE
         

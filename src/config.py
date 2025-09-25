@@ -57,6 +57,7 @@ class QuantumParameters:
     poh_forgery_amplification: float = 1.2  # Extra risk factor for Solana's PoH
     grover_gate_speed_mhz: float = 1.0  # Gate speed for Grover operations
     grover_success_probability: float = 0.95  # Success rate for Grover attacks
+    enable_grover_modeling: bool = False  # Flag to enable Grover modeling downstream
 
 
 @dataclass
@@ -99,6 +100,7 @@ class EconomicParameters:
     sol_price_usd: float = 235.0
     total_value_locked_usd: float = 8_500_000_000  # $8.5B TVL
     daily_volume_usd: float = 3_800_000_000  # $3.8B daily volume
+    model_cross_chain: bool = False  # Enable cross-chain contagion modeling
     
     # DeFi ecosystem breakdown
     defi_protocols: Dict[str, float] = field(default_factory=lambda: {
@@ -168,6 +170,9 @@ class SimulationParameters:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         (self.output_dir / "results").mkdir(exist_ok=True)
         (self.output_dir / "figures").mkdir(exist_ok=True)
+        # Synchronize nested flags with top-level settings
+        if hasattr(self.quantum, 'enable_grover_modeling'):
+            self.quantum.enable_grover_modeling = self.enable_grover_modeling
         
         # Setup logging level
         if self.verbose_logging:

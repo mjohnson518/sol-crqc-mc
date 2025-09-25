@@ -786,7 +786,8 @@ class PDFReportGenerator:
         # Main sections
         toc_section[0] = 1
         for section in sections:
-            clean_title = self._clean_markdown_text(section['title'])
+            title_text = section.get('title', '')
+            clean_title = self._clean_markdown_text(title_text)
             
             # Skip executive summary
             if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
@@ -801,10 +802,13 @@ class PDFReportGenerator:
                     toc_section[0] += 1
                     toc_section[1] = 0
                     title_text = f"<b>{toc_section[0]}. {clean_title.upper()}</b>"
+                    title_text = title_text if isinstance(title_text, str) else str(title_text)
+                    title_text = title_text if isinstance(title_text, str) else str(title_text)
                     title_para = Paragraph(title_text, self.styles['TOCLevel1'])
                 else:
                     toc_section[1] += 1
                     title_text = f"{toc_section[0]}.{toc_section[1]} {clean_title}"
+                    title_text = title_text if isinstance(title_text, str) else str(title_text)
                     title_para = Paragraph(title_text, self.styles['TOCLevel2'])
                 
                 page_para = Paragraph(str(page_num), self.styles['ProfessionalBody'])
@@ -858,6 +862,8 @@ class PDFReportGenerator:
         
         # Add Executive Summary as first unnumbered entry
         title_text = f"<b>EXECUTIVE SUMMARY</b>"
+        title_text = title_text if isinstance(title_text, str) else str(title_text)
+        title_text = title_text if isinstance(title_text, str) else str(title_text)
         title_para = Paragraph(title_text, self.styles['TOCLevel1'])
         page_para = Paragraph(str(page_num), self.styles['ProfessionalBody'])
         toc_data.append([title_para, page_para])
@@ -876,7 +882,7 @@ class PDFReportGenerator:
         
         for section in sections:
             # Skip executive summary in TOC (it's added separately above)
-            clean_title = self._clean_markdown_text(section['title'])
+            clean_title = self._clean_markdown_text(section.get('title', ''))
             if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
                 continue
             
@@ -1119,7 +1125,8 @@ class PDFReportGenerator:
         # Find executive summary section
         exec_summary = None
         for section in sections:
-            if 'executive' in section['title'].lower() and 'summary' in section['title'].lower():
+            title = str(section.get('title', '')).lower()
+            if 'executive' in title and 'summary' in title:
                 exec_summary = section
                 break
         
@@ -1583,8 +1590,14 @@ class PDFReportGenerator:
     
     def _has_enhanced_data(self, section: Dict[str, Any]) -> bool:
         """Check if section contains enhanced model data."""
-        title = section.get('title', '').lower()
-        content = section.get('content', '').lower()
+        title = str(section.get('title', '')).lower()
+        content_value = section.get('content', '')
+        if isinstance(content_value, str):
+            content = content_value.lower()
+        elif isinstance(content_value, list):
+            content = '\n'.join(str(item) for item in content_value).lower()
+        else:
+            content = str(content_value).lower()
         
         enhanced_indicators = [
             'grover', 'hybrid attack', 'system dynamics', 'cross-chain', 
@@ -1819,7 +1832,7 @@ class PDFReportGenerator:
     def _add_section(self, section: Dict[str, Any], charts_dir: Optional[Path]):
         """Add a content section with professional formatting."""
         # Skip Executive Summary (already added separately)
-        clean_title = self._clean_markdown_text(section['title'])
+        clean_title = self._clean_markdown_text(section.get('title', ''))
         if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
             return
         
@@ -1920,8 +1933,9 @@ class PDFReportGenerator:
             self._add_enhanced_section_visuals(section, self.story)
         
         # Add related charts if available
-        if charts_dir and section['title']:
-            self._add_section_charts(section['title'], charts_dir)
+        title = section.get('title')
+        if charts_dir and title:
+            self._add_section_charts(str(title), charts_dir)
     
     def _process_references_two_column(self, content: str):
         """Process references section in two-column format."""
@@ -2231,7 +2245,7 @@ class PDFReportGenerator:
         
         # Add all main sections with trackers
         for section in sections:
-            clean_title = self._clean_markdown_text(section['title'])
+            clean_title = self._clean_markdown_text(section.get('title', ''))
             # Skip executive summary (already added)
             if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
                 continue
@@ -2280,7 +2294,7 @@ class PDFReportGenerator:
         self._add_simulation_parameters_section()
         
         for section in sections:
-            clean_title = self._clean_markdown_text(section['title'])
+            clean_title = self._clean_markdown_text(section.get('title', ''))
             # Skip executive summary (already added)
             if 'executive' in clean_title.lower() and 'summary' in clean_title.lower():
                 continue

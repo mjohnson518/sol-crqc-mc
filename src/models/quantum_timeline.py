@@ -283,7 +283,7 @@ class QuantumDevelopmentModel:
             timeline.confidence = confidence_map[method] * (0.8 + 0.4 * rng.random())
         
         # Add Grover capabilities if enabled
-        if self.enable_grover:
+        if self.enable_grover and getattr(self.params, 'enable_grover_modeling', False):
             timeline.grover_capabilities = self._sample_grover_timeline(rng)
         
         # Update with live data if enabled
