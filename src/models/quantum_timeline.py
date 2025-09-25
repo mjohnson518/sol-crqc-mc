@@ -235,6 +235,23 @@ class QuantumDevelopmentModel:
         if self.enable_live_data:
             self.data_cache = {}
             self.cache_duration = timedelta(hours=1)
+        
+        # Optional integrated CRQC model
+        self.integrated_crqc_model = None
+        self._integrated_prediction = None
+        self._integrated_prediction_year = None
+    
+    def set_integrated_crqc_model(self, model):
+        """
+        Set an integrated CRQC model for enhanced predictions.
+        
+        Args:
+            model: CRQCIntegratedModel instance
+        """
+        self.integrated_crqc_model = model
+        # Clear cached predictions
+        self._integrated_prediction = None
+        self._integrated_prediction_year = None
     
     def sample(self, rng: np.random.RandomState) -> QuantumTimeline:
         """
@@ -246,6 +263,14 @@ class QuantumDevelopmentModel:
         Returns:
             QuantumTimeline instance
         """
+        # Use integrated CRQC model if available
+        if self.integrated_crqc_model is not None:
+            return self._sample_with_integrated_model(rng)
+        
+        # Ensure previous uncertainty report is cleared when not using integrated model
+        self._integrated_prediction = None
+        self._integrated_prediction_year = None
+        
         # Use advanced models if enabled
         if self.use_advanced_models:
             # Choose between Cox and multimodal methods
@@ -938,6 +963,123 @@ class QuantumDevelopmentModel:
         # In production, this would fetch from quantum computing APIs
         # and adjust the timeline based on recent developments
         pass
+    
+    def _sample_with_integrated_model(self, rng: np.random.RandomState) -> QuantumTimeline:
+        """
+        Sample timeline using integrated CRQC model.
+        
+        Args:
+            rng: Random number generator
+            
+        Returns:
+            QuantumTimeline with integrated predictions
+        """
+        # Generate or use cached prediction
+        current_year = datetime.now().year
+        
+        if (self._integrated_prediction is None or 
+            self._integrated_prediction_year != current_year):
+            # Generate new prediction
+            self._integrated_prediction = self.integrated_crqc_model.generate_prediction(
+                current_year=current_year
+            )
+            self._integrated_prediction_year = current_year
+        
+        prediction = self._integrated_prediction
+        
+        # Sample from the probability distribution
+        years = sorted(prediction.probability_by_year.keys())
+        probs = [prediction.probability_by_year[y] for y in years]
+        
+        # Convert cumulative probabilities to annual probabilities
+        annual_probs = []
+        for i in range(len(probs)):
+            if i == 0:
+                annual_probs.append(probs[i])
+            else:
+                # Annual probability = P(year i) - P(year i-1)
+                annual_probs.append(max(0, probs[i] - probs[i-1]))
+        
+        # Normalize
+        total = sum(annual_probs)
+        if total > 0:
+            annual_probs = [p/total for p in annual_probs]
+        else:
+            # Fallback to uniform
+            annual_probs = [1/len(years) for _ in years]
+        
+        # Sample CRQC year
+        crqc_year = rng.choice(years, p=annual_probs)
+        
+        # Add noise based on confidence intervals
+        ci_90 = prediction.confidence_interval_90
+        ci_width = (ci_90[1] - ci_90[0]) / 2
+        noise = rng.normal(0, ci_width / 1.645)  # Convert 90% CI to std dev
+        crqc_year = int(crqc_year + noise)
+        
+        # Generate quantum capabilities based on integrated model pathway
+        capabilities = []
+        current_qubits = 1180  # IBM Condor baseline
+        
+        for year in range(current_year, crqc_year + 5):
+            # Adjust growth based on pathway
+            if prediction.dominant_pathway == "breakthrough":
+                growth_rate = 2.0 + 0.5 * rng.random()  # Rapid growth
+            elif prediction.dominant_pathway in ["optimized_shors", "regevs_algorithm"]:
+                growth_rate = 1.5 + 0.3 * rng.random()  # Steady growth
+            else:
+                growth_rate = 1.3 + 0.2 * rng.random()  # Conservative growth
+            
+            current_qubits = int(current_qubits * growth_rate)
+            
+            # Determine threat level
+            if current_qubits >= 10000:
+                threat_level = QuantumThreat.CRITICAL
+            elif current_qubits >= 5000:
+                threat_level = QuantumThreat.HIGH
+            elif current_qubits >= 1631:  # CRQC threshold
+                threat_level = QuantumThreat.MODERATE
+            elif current_qubits >= 500:
+                threat_level = QuantumThreat.EMERGING
+            else:
+                threat_level = QuantumThreat.NONE
+            
+            # Error rates improve with time (convert to fidelity)
+            error_rate = 0.01 * (0.9 ** (year - current_year))
+            gate_fidelity = 1.0 - min(0.01, error_rate)
+            
+            # Estimate physical qubits (10-100x overhead)
+            overhead = max(10, 100 * (1 - gate_fidelity))
+            physical_qubits = int(current_qubits * overhead)
+            
+            # Coherence time improves with years
+            coherence_time = 10.0 * (1.2 ** (year - current_year))  # ms
+            
+            cap = QuantumCapability(
+                year=year,
+                logical_qubits=current_qubits,
+                physical_qubits=physical_qubits,
+                gate_fidelity=gate_fidelity,
+                coherence_time_ms=coherence_time,
+                threat_level=threat_level
+            )
+            capabilities.append(cap)
+        
+        # Create timeline
+        timeline = QuantumTimeline(
+            capabilities=capabilities,
+            crqc_year=crqc_year,
+            breakthrough_years=[],  # Could add detected breakthroughs here
+            projection_method='integrated_crqc',
+            confidence=prediction.confidence_score,
+            winning_technology=prediction.dominant_pathway
+        )
+        
+        # Add Grover capabilities if enabled
+        if self.enable_grover:
+            timeline.grover_capabilities = self._sample_grover_timeline(rng)
+        
+        return timeline
 
 
 def test_quantum_model():
